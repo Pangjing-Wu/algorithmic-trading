@@ -1,2 +1,2 @@
 # trading-strategy-environment
- A reinforcement learning environment for simulating trading strategy
+ A reinforcement learning environment for simulating algorithm trading strategy
