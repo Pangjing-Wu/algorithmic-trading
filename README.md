@@ -7,7 +7,7 @@
     * Some attributes to describe data characteristics.
     * Such as **quote** and **trade** data length, start and end timestamps, etc.
 * Methods:
-    * \_\_init__(data:*H2.database*)->*pandas.DataFrame*:
+    * \_\_init__(data:*h2.database*, stock_code, range)->*pandas.DataFrame*:
         1. Use python library "psycopg" to link h2 database and transform to pandas.DataFrame;
         2. Select a specific stock;
         3. Drop noise;
@@ -20,13 +20,14 @@
     * Generate quote series (which is generator type).
     * Get time series of all/quote/trade data.
 
-Note: It would be better to design data structure for quote and trade.
+Note: It would be better to design data structures (class or namedtuple) for quote and trade.
 
 ### env.py
 #### class AlgorithmTrader()
 * Attributes:
     * Some attributes to describe _<s,a,r,p>_.
     * Simulated order book.
+    * Environment records (i.e. info of setp).
 * Methods:
     * \_\_init__(TickData, strategy_direction, volume, reward_function: *callable* or *str*, [arguments to describe environment]):
     * reset(): rest environment.
