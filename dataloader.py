@@ -1,21 +1,10 @@
+import os
 import time
 import subprocess
 import psycopg2
 import pandas as pd
 
 # TODO complete logger.
-
-class QuoteData(object):
-
-    def __init__(self):
-        pass
-
-
-class TradeData(object):
-    
-    def __init__(self):
-        pass
-
 
 class H2Connection(object):
 
@@ -24,27 +13,39 @@ class H2Connection(object):
 
     @property
     def status(self):
-        if self._is_h2_online():
-            return self.conn
+        # for windows
+        if os.name == 'nt':
+            try:
+                return self.conn
+            except NameError:
+                return False
+        # for Linux/MacOS
         else:
-            return False
+            if self._is_h2_online():
+                return self.conn
+            else:
+                return False
 
     def new_connect(self, dbdir, user, password, host='localhost', port='5435', h2_start_wait=3):
         try:
             self.conn = psycopg2.connect(dbname=dbdir, user=user, password=password, host=host, port=port)
         except psycopg2.OperationalError as e:
+            if os.name == 'nt':
+                raise ConnectionError("H2 service is not running." \
+                    " Since windows doesn't support H2 automatic start, please start h2 service manually.")
             if self._is_h2_online():
-                raise ConnectionError('''H2 service is running, but connection is refused.
-                Please double check username and password or restart h2 service manually.''')
+                raise ConnectionError("H2 service is running, but connection is refused." \
+                    " Please double check username and password or restart h2 service manually.")
             else:
                 self._start_h2_service(h2_start_wait)
                 self.conn = psycopg2.connect(dbname=dbdir, user=user, password=password, host=host, port=port)
         finally:
             self.cur = self.conn.cursor()
 
-    def query(self, sql: str, *args):
+    def query(self, sql: str, *args)->pd.DataFrame:
         self.cur.execute(sql, args)
         data = self.cur.fetchall()
+        data = pd.DataFrame(data)
         return data
 
     def _is_h2_online(self):
@@ -82,6 +83,18 @@ class H2Connection(object):
                     print("[WARN] Fail to start H2, you still have %d times to try." % (4-i))
             # mannual start failed.
             raise ConnectionError('Cannot start H2 service, exit program.')
+    
+
+class QuoteData(object):
+
+    def __init__(self):
+        pass
+
+
+class TradeData(object):
+    
+    def __init__(self):
+        pass
 
 
 class TickData(object):
