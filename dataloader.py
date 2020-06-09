@@ -83,45 +83,66 @@ class H2Connection(object):
                     print("[WARN] Fail to start H2, you still have %d times to try." % (4-i))
             # mannual start failed.
             raise ConnectionError('Cannot start H2 service, exit program.')
-    
-
-class QuoteData(object):
-
-    def __init__(self):
-        pass
-
-
-class TradeData(object):
-    
-    def __init__(self):
-        pass
 
 
 class TickData(object):
 
-    def __init__(self):
-        pass
+    def __init__(self, data: pd.DataFrame):
+        self._data = data
+        self._quote = self._data[self._data['type'] == 'quote'].dropna(axis=1).reset_indix()
+        self._trade = self._data[self._data['type'] == 'trade'].dropna(axis=1).reset_indix()
 
-    def get_quote(self, index:'timestamp or order')->'quote':
-        pass
+    def __len__(self):
+        return self._data.shape[0]
 
-    def get_trade(self, index:'timestamp or order')->'quote':
-        pass
+    def __str__(self):
+        return self._data
 
-    def pre_quote(self, current:'quote or trade')->'quote':
-        pass
+    @property
+    def data(self):
+        return self._data
 
-    def next_quote (self, current:'quote or trade')->'quote':
-        pass
+    def get_quote(self, t:None or int or list = None)->pd.DataFrame:
+        quote = self._quote if t is None else self._quote.loc[t, :]
+        quote = quote.drop(['index', 'type'])
+        return quote
+
+    def get_trade(self, t:None or int or list = None)->pd.DataFrame:
+        trade = self._trade if t is None else self._trade.loc[t, :]
+        trade = trade.drop(['index', 'type'])
+        return trade
+
+    def pre_quote(self, t:int or pd.Series)->pd.Series:
+        if type(t) == int:
+            pass
+        elif type(t) == pd.DataFrame:
+            t = t['time'].iloc[0]
+        elif type(t) == pd.Series:
+            t = t['time']
+        else:
+            raise TypeError("argument 't' munst be 'int', 'pd.Series', or 'pd.DataFrame'.")
+        quote = self._quote[self._quote['time'] < t]
+        return None if quote.empty else quote.iloc[-1]
+
+    def next_quote(self, t:int or pd.Series)->pd.Series:
+        if type(t) == int:
+            pass
+        elif type(t) == pd.DataFrame:
+            t = t['time'].iloc[0]
+        elif type(t) == pd.Series:
+            t = t['time']
+        else:
+            raise TypeError("argument 't' munst be 'int', 'pd.Series', or 'pd.DataFrame'.")
+        quote = self._quote[self._quote['time'] > t]
+        return None if quote.empty else quote.iloc[0]
     
-    def get_trade_between(self, pre_quote, post_quote)->'trade':
-        pass
+    def get_trade_between(self, pre_quote:pd.Series, post_quote:None or pd.Series = None)->pd.DataFrame:
+        # use next quote if post_quote is not specified.
+        if post_quote == None:
+            post_quote = self.next_quote(pre_quote)
+        time1, time2 = pre_quote['time'], post_quote['time']
+        trade = self._trade[(self._trade['time'] > time1) & (self._trade['time'] < time2)]
+        return None if trade.empty else trade
 
-    def get_quote_series(self):
-        pass
-
-    def get_trade_series(self):
-        pass
-
-    def statastic(self, data:'quote or trade'):
-        pass
+    def trade_statistic(self, trade:pd.DataFrame)->pd.DataFrame:
+        return trade.groupby('price').sum()
