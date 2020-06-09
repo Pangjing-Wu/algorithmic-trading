@@ -8,17 +8,17 @@ ask = np.zeros([1,6])
 bid = np.zeros([1,6])
 
 from dataloader import TickData
-
+#继承#
 class AlgorithmTrader(object):
-
+#初始化#
     def __init__(self, data:TickData, strategy_direction,
         volume:int, reward_function:callable or str,
         *args:'[arguments to describe environment]',):
         pass
 
-    def reset(self):                                                                      #如果以一天为一个训练单位，每天重复
+    def reset(self):                                #如果以一天为一个训练单位，每天重复
         # TODO reset invironment.
-        n=0                                                                               #第几步变到第0步
+        n=0                                        #第几步变到第0步
         simulated_trade = np.zeros([1, 3])
         simulated_quote = np.zeros([1, 3])
         pass
@@ -43,8 +43,8 @@ class AlgorithmTrader(object):
         # go to next step.
         info='在时间{tn}成交了{a1}手价格为{a2}的股票，剩余提交订单为{b1}手价格为{b2}的股票。'.format(tn=t_n,a1=a1,a2=a2,b1=b1,b2=b2)
         if signal==1:
-            self.reset()                                                                     #到最后了，调用rest函数
-            self.step()                                                                      #nextstep函数
+            self.reset()                             #调用rest函数
+            self.step()                              #nextstep函数
         else:
             n=n+1
             self.step()
@@ -117,6 +117,8 @@ class AlgorithmTrader(object):
                      else:
                          OK_signal = 0                                                         #无成交
                          wait_signal += wait_signal                                            #还需要等待几个周期才可以进行交易
+        else:
+            OK_signal==0
         if OK_signal==1:                                                                       #如果全部成交
              simulated_trade =np.insert(simulated_trade,m2,values=simulated_quote[m-1],axis=0)
              quote2=np.arry(simulated_quote[m-1][0],simulated_quote[m-1][1],0)
@@ -125,9 +127,9 @@ class AlgorithmTrader(object):
              a2=simulated_trade[m2][2]
              b1 = simulated_quote[m][1]
              b2 = simulated_quote[m][2]
-        elif OK_signal==2:                                                                     #如果成交了一部分
+        elif OK_signal==2:                                                                      #如果成交了一部分
              trade2 = np.arry(simulated_quote[m-1][0], simulated_quote[m-1][1], cc2)
-             simulated_trade =np.insert(simulated_trade,m2,values=trade2,axis=0)               #trade里面显示成交的量，quote里增加保留的量
+             simulated_trade =np.insert(simulated_trade,m2,values=trade2,axis=0)                #trade里面显示成交的量，quote里增加保留的量
              quote2 = np.arry(simulated_quote[m-1][0], simulated_quote[m-1][1], k)
              simulated_quote = np.insert(simulated_quote, m-1, values=quote2, axis=0)
              a1 = simulated_trade[m2][1]
@@ -146,5 +148,3 @@ class AlgorithmTrader(object):
 
     def _twap(self, price, volumn):
         pass
-    
-   
