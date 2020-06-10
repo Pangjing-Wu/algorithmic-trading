@@ -1,6 +1,6 @@
 import numpy as np
 real_trade = np.zeros([1, 3])
-real_trade2 = np.zeros([1, 3])
+real_trade2 = np.zeros([1, 3])  #'''需要提前把trade订单数据做处理，把两个QUOTE时间之间发生的统一价位的手数累加起来,时间都记录为Quote的时间,按照价格大小排,作为real_trade2'''
 real_quote = np.zeros([1, 11])
 simulated_trade = np.zeros([1, 3])
 simulated_quote = np.zeros([1, 3])
@@ -8,9 +8,9 @@ ask = np.zeros([1,6])
 bid = np.zeros([1,6])
 
 from dataloader import TickData
-#继承#
+
 class AlgorithmTrader(object):
-#初始化#
+
     def __init__(self, data:TickData, strategy_direction,
         volume:int, reward_function:callable or str,
         *args:'[arguments to describe environment]',):
@@ -18,14 +18,19 @@ class AlgorithmTrader(object):
 
     def reset(self):                                #如果以一天为一个训练单位，每天重复
         # TODO reset invironment.
+        global n
+        global simulated_quote
+        global simulated_trade
         n=0                                        #第几步变到第0步
-        simulated_trade = np.zeros([1, 3])
+        simulated_trade = np.zeros([1, 3])         #simulated book 清空
         simulated_quote = np.zeros([1, 3])
         pass
 
     def step(self, action)->'(next_s, reward, signal, info)':
         # TODO environment step:
         # Issue an order;t_n为现在的时刻 action[n-1][2]
+        global n
+        global simulated_quote
         t_n=real_quote[n][0]
         m=np.size(simulated_quote ,0)
         if action[n][1]!=0:
@@ -51,7 +56,9 @@ class AlgorithmTrader(object):
 
 
 
-    def _transaction_matching(self, args)->'(a1, a2, b1, b2)':  #交易匹配
+    def _transaction_matching(self, action,args)->'(a1, a2, b1, b2)':  
+        global simulated_quote
+        global simulated_trade
         m = np.size(simulated_quote, 0)
         m2= np.size(simulated_trade,0)
         if simulated_quote[m-1][2]!=0:                                                       #说明有订单在等待成交
@@ -95,7 +102,7 @@ class AlgorithmTrader(object):
                          wait_signal=0
                      if wait_signal==3:                                                        #已经等待三个时钟周期，可以进行交易
                          aa = np.argwhere(ask == simulated_quote[m-1][1])                      #先判断simulated_quote[m-1][1]=ask几
-                         '''需要提前把trade订单数据做处理，把两个QUOTE时间之间发生的统一价位的手数累加起来,时间都记录为Quote的时间,按照价格大小排,作为real_trade2'''
+
                          bb = np.argwhere( real_trade2 == simulated_quote[m-1][0])
                          cc =np.zeros([1,6])
                          for i in bb:
@@ -118,7 +125,8 @@ class AlgorithmTrader(object):
                          OK_signal = 0                                                         #无成交
                          wait_signal += wait_signal                                            #还需要等待几个周期才可以进行交易
         else:
-            OK_signal==0
+            OK_signal=0
+
         if OK_signal==1:                                                                       #如果全部成交
              simulated_trade =np.insert(simulated_trade,m2,values=simulated_quote[m-1],axis=0)
              quote2=np.arry(simulated_quote[m-1][0],simulated_quote[m-1][1],0)
@@ -127,7 +135,7 @@ class AlgorithmTrader(object):
              a2=simulated_trade[m2][2]
              b1 = simulated_quote[m][1]
              b2 = simulated_quote[m][2]
-        elif OK_signal==2:                                                                      #如果成交了一部分
+        elif OK_signal==2:                                                                     #如果成交了一部分
              trade2 = np.arry(simulated_quote[m-1][0], simulated_quote[m-1][1], cc2)
              simulated_trade =np.insert(simulated_trade,m2,values=trade2,axis=0)                #trade里面显示成交的量，quote里增加保留的量
              quote2 = np.arry(simulated_quote[m-1][0], simulated_quote[m-1][1], k)
