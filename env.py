@@ -1,72 +1,117 @@
 import numpy as np
-real_trade = np.zeros([1, 3])
-real_trade2 = np.zeros([1, 3])  #'''需要提前把trade订单数据做处理，把两个QUOTE时间之间发生的统一价位的手数累加起来,时间都记录为Quote的时间,按照价格大小排,作为real_trade2'''
-real_quote = np.zeros([1, 11])
-simulated_trade = np.zeros([1, 3])
-simulated_quote = np.zeros([1, 3])
-ask = np.zeros([1,6])
-bid = np.zeros([1,6])
 
-from dataloader import TickData
+from tickdata import TickData
+
 
 class AlgorithmTrader(object):
 
-    def __init__(self, data:TickData, strategy_direction,
-        volume:int, reward_function:callable or str,
-        *args:'[arguments to describe environment]',):
-        pass
+    def __init__(
+        self,
+        td:TickData,
+        strategy_direction:['buy', 'sell'],
+        volume:int,
+        reward_function:callable or str,
+        wait_t,
+        max_level=5 # TODO rewrite corresponding codes.
+        ):
+        self._n  = 0
+        self._td = td
+        self._t  = self._td.quote_timeseries[0]
+        self._simulated_quote     = {'level': None, 'price':None, 'size': None}
+        self._simulated_all_trade = {'level': [], 'price':[], 'size': []}
+        self._res_volume = volume
+        self._wait_t     = wait_t
+        self._action_space    = max_level * 2
+        self._reward_function = reward_function
+    
+    @property
+    def action_space(self):
+        return self._action_space
 
-    def reset(self):                                #如果以一天为一个训练单位，每天重复
-        # TODO reset invironment.
-        global n
-        global simulated_quote
-        global simulated_trade
-        n=0                                        #第几步变到第0步
-        simulated_trade = np.zeros([1, 3])         #simulated book 清空
-        simulated_quote = np.zeros([1, 3])
-        pass
+    def reset(self):
+        self._n = 0
+        self._t = self._td.quote_timeseries[0]
+        self._simulated_quote     = {'level': None, 'price':None, 'size': None}
+        self._simulated_all_trade = {'level': [], 'price':[], 'size': []}
 
     def step(self, action)->'(next_s, reward, signal, info)':
-        # TODO environment step:
-        # Issue an order;t_n为现在的时刻 action[n-1][2]
-        global n
-        global simulated_quote
-        t_n=real_quote[n][0]
-        m=np.size(simulated_quote ,0)
-        if action[n][1]!=0:
-            action2=np.arry([t_n,action[n][0],action[n][1]])
-            simulated_quote=np.insert(simulated_quote ,m,values=action2,axis=0)           #加一行并记录t_n和action[0][n]和action[1][n]
-        # Matching transactions and Refresh the real/simulated order book;
-        self._transaction_matching()
-        # Calculate reward;计算奖励
-        # Give a final signal;
-        m3= np.size(real_quote,0)
-        if n+2>m3:
-            signal=1
+        self._t = self._td.trade_timeseries[self._n]
+        quote = self._td.get_quote(self._t)
+        trade = self._td.get_trade(self._t)
+        # Issue an order;
+        level = self._action_map(action[0])
+        if action[1] != 0:
+            self._simulated_quote['level'] = level
+            self._simulated_quote['price'] = quote[level][0]
+            self._simulated_quote['size']  = action[1]
+        simulated_trade = self._transaction_matching(quote, trade)
+        self._res_volume -= sum(simulated_trade['size'])
+        # Give a final signal
+        if self._t == self._td.trade_timeseries[-2]:
+            signal = True
+        elif self._res_volume == 0:
+            signal = True
+        # TODO what to do if self._res_volume < 0
+        elif self._res_volume < 0:
+            signal =True
         else:
-            signal=0
+            signal = False
+        # Calculate reward: trasaction cost, margin conditions
+        # Order completed.
+        if signal == True:
+            if self._res_volume == 0:
+                if self._reward_function == 'vwap':
+                    reward = self._vwap(self._simulated_all_trade)
+                elif self._reward_function == 'twap':
+                    reward = self._twap(self._simulated_all_trade)
+                else:
+                    reward = self._reward_function(self._simulated_all_trade)
+            # Order not completed.
+            elif self._res_volume > 0:
+                reward = -999
+             # TODO what to do if self._res_volume < 0
+            else:
+                reward = -99
+        else:
+            reward = 0
+        # conclude info
+        info = 'At %s ms, %s hand(s) were traded at level %s and' \
+               '%s hand(s) waited to trade at level %s.' % (
+                self._t, self._simulated_trade['size'], self._simulated_trade['level'],
+                self._simulated_quote['level'], self._simulated_quote['size']
+                )
         # go to next step.
-        info='在时间{tn}成交了{a1}手价格为{a2}的股票，剩余提交订单为{b1}手价格为{b2}的股票。'.format(tn=t_n,a1=a1,a2=a2,b1=b1,b2=b2)
-        if signal==1:
-            self.reset()                             #调用rest函数
-            self.step()                              #nextstep函数
+        env_s = self._td.next_quote(self._t).drop('time', axis=1).values.reshape(-1)
+        agt_s = [self._res_volume] + simulated_trade['price'] + simulated_trade['size']
+        next_s = np.append(env_s, agt_s, axis=0)
+        self._n += 1
+        return (next_s, reward, signal, info)
+
+    def _action2level(self, action:int)->str:
+        max_level = self.action_space / 2
+        if action <  max_level:
+            level = max_level - action
+            return 'bid%d' % level
         else:
-            n=n+1
-            self.step()
+            level = action - max_level + 1
+            return 'ask%d' % level
 
+    def _level2size(self, level:str)->str:
+        size_tag = level[0] +'size' + level[-1]
+        return size_tag
 
-
-    def _transaction_matching(self, action,args)->'(a1, a2, b1, b2)':  
-        global simulated_quote
-        global simulated_trade
-        m = np.size(simulated_quote, 0)
-        m2= np.size(simulated_trade,0)
-        if simulated_quote[m-1][2]!=0:                                                       #说明有订单在等待成交
-             if  simulated_quote[m-1][2]>0:
-                 if simulated_quote[m-1][1]>=ask[1]:                                         #如果买的价格高于现在市场上卖的最低价
-                     if simulated_quote[m-1][2]<=real_quote[n][4]:                           #并且ASK1的量足够
-                         OK_signal=1                                                         #直接全部成交
+    def _transaction_matching(self, quote, trade,)->'simulated_trade':
+        # NOTE @wupj 这次matching中发生的trade要记录在simulated_trade中，并追加到simulated_all_trade中
+        simulated_trade = {'level': [], 'price':[], 'size': []}
+        m = np.size(self._simulated_quote, 0)
+        m2= np.size(self._simulated_trade, 0)
+        if self._simulated_quote['size']!=0:                                                       #说明有订单在等待成交
+             if  self._simulated_quote[m-1][2]>0:
+                 if self._simulated_quote[m-1][1]>=ask[1]:                                         #如果买的价格高于现在市场上卖的最低价
+                     if self._simulated_quote[m-1][2] <= self._real_quote[n][4]:                           #并且ASK1的量足够
+                         OK_signal = 1                                                      #直接全部成交
                      else:
+                         # TODO complete warning log.
                          warning_signal=1                                                    #报警
                  else:                                                                       #先判断simulated_quote[m-1][1]=BID几
                      if action[n][1] != 0:
@@ -151,8 +196,8 @@ class AlgorithmTrader(object):
              b2 = simulated_quote[m-1][2]
         pass
 
-    def _vwap(self, price, volumn):
-        pass
+    def _vwap(self, trade):
+        map(lambda x,y: x * y/ sum(y), trade['price'], trade['size'])
 
-    def _twap(self, price, volumn):
+    def _twap(self, trade):
         pass
