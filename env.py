@@ -46,8 +46,8 @@ class AlgorithmTrader(object):
             self._simulated_quote['level'] = level
             self._simulated_quote['price'] = quote[level][0]
             self._simulated_quote['size'] = action[1]
-        simulated_trade = self._transaction_matching(quote, trade)   #进行matching之后的输出给到simulated_trade
-        self._res_volume -= sum(simulated_trade['size'])     #
+        simulated_trade = self._transaction_matching(quote, trade)
+        self._res_volume -= sum(simulated_trade['size'])
         # Give a final signal
         if self._t == self._td.trade_timeseries[-2]:
             signal = True
@@ -89,7 +89,7 @@ class AlgorithmTrader(object):
         self._n += 1
         return (next_s, reward, signal, info)
 
-    def _action2level(self, action: int) ->'(kind,newlevel)':  #返回这个ACTION的level BID几或者ASK几
+    def _action2level(self, action: int) ->'(kind,newlevel)':  #返回这个ACTION的level：从数字0变成kind'bid',newlevel'5'
         max_level = self.action_space / 2
         if action < max_level:
             newlevel = max_level - action
@@ -100,7 +100,11 @@ class AlgorithmTrader(object):
             kind='ask'
             return (kind,newlevel)
 
-    def _action2level2(self,kind:str,newlevel:int)->'level':
+    def _level2price(self, kind:str,newlevel) -> str:  #从 kind'bid',newlevel'5' 变成'bid5'
+        price_tag = kind+newlevel
+        return price_tag
+
+    def _action2level2(self,kind:str,newlevel:int)->'level':  #从kind'bid',newlevel'5'变成数字0
         max_level = self.action_space / 2
         if kind=='bid':
             level=max_level-newlevel
@@ -108,42 +112,38 @@ class AlgorithmTrader(object):
             level=max_level+newlevel-1
         return(level)
 
-
     def _level2size(self, kind:str,newlevel) -> str:     #返回B_size_5
         size_tag = kind[0] + 'size' + newlevel
         return size_tag
 
-    def _level2price(self, kind:str,newlevel) -> str:     #返回B_size_5
-        price_tag = kind+newlevel
-        return price_tag
 
-'''怎么从TRADER那获得strategy_direction，在这里把它作为输入可行吗？...如果改成real_quote的话是不是前面的slef._td，self._n等用不了？，'''
-    def _transaction_matching(self,action,strategy_direction,quote,trade ) -> 'simulated_trade':
-        # NOTE @wupj 这次matching中发生的trade要记录在simulated_trade中，并追加到simulated_all_trade中
+
+
+    def _transaction_matching(self,quote,trade,action,simulated_quote ) -> 'simulated_trade':
         simulated_trade = {'level': [], 'price': [], 'size': []}
         if self._simulated_quote['size'] != 0:
             (kind, newlevel) = self._action2level(action)
             if strategy_direction=='buy':
                if kind=='ask':  # 如果levelkind是'ask',则现在可以直接成交，只考虑quote中的数量
-                    i=1
-                    ii=0
+                    i=1 #真实level的数值
+                    ii=0 #现在的simulated_trade里有几个值
                     while i<=newlevel:
                         size_tag=self._level2size(kind,i)
                         price_tag = self._level2price(kind, i)
-                        if self._td.quote[self._n][size_tag]<=quote['size']:                  #如果ask1的量小于等于提交的订单量
+                        if self._td.quote[self._n][size_tag]<=simulated_quote['size']:                  #如果ask1的量小于等于提交的订单量
                             level2=self._action2level2(self,kind,i)
-                            simulated_trade['level'][ii]=level2
-                            simulated_trade['price'][ii]=self._td.quote[self._n]['price_tag']  #这样查找real quote 里的 price对吗？？？？？？？？？？？
-                            simulated_trade['size'][ii]=self._td.quote[self._n]['size_tag']
-                            quote['size'] -= simulated_trade['size'][ii]
+                            simulated_trade['level'].append(level2)
+                            simulated_trade['price'].append(quote(self._t)[price_tag])
+                            simulated_trade['size'].append(quote(self._t)[size_tag])
+                            simulated_quote['size'] -= simulated_trade['size'][ii]
                             i=i+1
                             ii=ii+1
                         else:
                             level2 = self._action2level2(self, kind, i)
-                            simulated_trade['level'][ii] = level2                               #如果大于需求的量，则全部成交
-                            simulated_trade['price'][ii] = self._td.quote[self._n]['price_tag']
-                            simulated_trade['size'][ii] =quote['size']
-                            quote['size'] -= simulated_trade['size'][ii]
+                            simulated_trade['level'].append(level2)                             #如果大于需求的量，则全部成交
+                            simulated_trade['price'].append(quote(self._t)[price_tag])
+                            simulated_trade['size'].append(simulated_quote['size'])
+                            simulated_quote['size'] -= simulated_trade['size'][ii]
                             break
                else:  # level kind,是 bid,则需要排队并且考虑trade
                     wait_t=self._wait_t
@@ -151,34 +151,34 @@ class AlgorithmTrader(object):
                         self._wait_signal = 0
                     else :
                         self._wait_signal= self._wait_signal +1
-                    if self._wait_signal == wait_t:
+                    if self._wait_signal >= wait_t:
                         trade_sum=self.td.trade_sum(trade)
-                        if trade_sum['price'][0]<=quote['price'] :   #说明存在比我提交的价格低的值呗成交了
+                        if trade_sum['price'][0]<=simulated_quote['price'] :   #说明存在比我提交的价格低的值成交了
                            i=0
                            ii=0
-                           while trade_sum['price'][i]<=quote['price']:
-                               if trade_sum['size'][i]<=quote['size']:
-                                   simulated_trade['level'][ii] = trade_sum['level'][ii]      #能不能在trade_sum里面多一列level
-                                   simulated_trade['price'][ii] = trade_sum['price'][ii]
-                                   simulated_trade['size'][ii] = trade_sum['size'][ii]
-                                   quote['size'] -= simulated_trade['size'][ii]
+                           while trade_sum['price'][i]<=simulated_quote['price']:
+                               if trade_sum['size'][i]<=simulated_quote['size']:
+                                   simulated_trade['level'].append(trade_sum['level'][ii])
+                                   simulated_trade['price'].append(trade_sum['price'][ii])
+                                   simulated_trade['size'].append(trade_sum['size'][ii])
+                                   simulated_quote['size'] -= simulated_trade['size'][ii]
                                    i = i + 1
                                    ii = ii + 1
                                else:
-                                   simulated_trade['level'][ii] = trade_sum['level'][ii]  # 能不能在trade_sum里面多一列level
-                                   simulated_trade['price'][ii] = trade_sum['price'][ii]
-                                   simulated_trade['size'][ii] = quote['size']
-                                   quote['size'] -= simulated_trade['size'][ii]
+                                   simulated_trade['level'].append(trade_sum['level'][ii])
+                                   simulated_trade['price'].append(trade_sum['price'][ii])
+                                   simulated_trade['size'].append(simulated_quote['size'])
+                                   simulated_quote['size'] -= simulated_trade['size'][ii]
                                    break
                         else:
-                            simulated_trade['level'][0]=0   #一点也没成交 simulated_trade 0 0
+                            simulated_trade['level'][0]=0
                             simulated_trade['price'][0] = 0
                             simulated_trade['size'][0] = 0
                     else:
-                        #一点也没成交 simulated_trade 0 0
                         simulated_trade['level'][0] = 0
                         simulated_trade['price'][0] = 0
                         simulated_trade['size'][0] = 0
+
             # 说明有订单是要卖
             else:
                 if kind == 'bid':  # 如果levelkind是'ask',则现在可以直接成交，只考虑quote中的数量
@@ -187,20 +187,20 @@ class AlgorithmTrader(object):
                     while i <= newlevel:
                         size_tag = self._level2size(kind, i)
                         price_tag = self._level2price(kind, i)
-                        if self._td.quote[self._n][size_tag] < quote['size']:  # 如果bid1的量小于等于提交的订单量
+                        if self._td.quote[self._n][size_tag] < simulated_quote['size']:  # 如果bid1的量小于提交的订单量
                             level2 = self._action2level2(self, kind, i)
-                            simulated_trade['level'][ii] = level2
-                            simulated_trade['price'][ii] = self._td.quote[self._n]['price_tag']
-                            simulated_trade['size'][ii] = self._td.quote[self._n]['size_tag']
-                            quote['size'] -= simulated_trade['size'][ii]
+                            simulated_trade['level'].append(level2)
+                            simulated_trade['price'].append(quote(self._t)[price_tag])
+                            simulated_trade['size'].append(quote(self._t)[size_tag])
+                            simulated_quote['size'] -= simulated_trade['size'][ii]
                             i = i + 1
                             ii = ii + 1
                         else:
                             level2 = self._action2level2(self, kind, i)
-                            simulated_trade['level'][ii] = level2
-                            simulated_trade['price'][ii] = self._td.quote[self._n]['price_tag']
-                            simulated_trade['size'][ii] = quote['size']
-                            quote['size'] -= simulated_trade['size'][ii]
+                            simulated_trade['level'] .append(level2)
+                            simulated_trade['price'].append(quote(self._t)[price_tag])
+                            simulated_trade['size'].append(simulated_quote['size'])
+                            simulated_quote['size'] -= simulated_trade['size'][ii]
                             break
                 else:  # level kind,是 ask,则需要排队并且考虑trade
                     wait_t = self._wait_t
@@ -210,34 +210,34 @@ class AlgorithmTrader(object):
                         self._wait_signal = self._wait_signal + 1
                     if self._wait_signal == wait_t:
                         trade_sum = self.td.trade_sum(trade)
-                        if trade_sum['price'][len(trade_sum['price'])] >= self._simulated_quote['price']:  # 可不可以这么用len?????
-                            i = len(trade_sum['price'])
+                        if trade_sum['price'].iloc[-1] >= self._simulated_quote['price']:
+                            i = len(trade_sum['price'])-1
                             ii = 0
-                            while trade_sum['price'][i] >= quote['price']:
-                                if trade_sum['size'][i] < quote['size']:
-                                    simulated_trade['level'][ii] = trade_sum['level'][ii]  # 能不能在trade_sum里面多一列lavel
-                                    simulated_trade['price'][ii] = trade_sum['price'][ii]
-                                    simulated_trade['size'][ii] = trade_sum['size'][ii]
-                                    quote['size'] -= simulated_trade['size'][ii]
+                            while trade_sum['price'][i] >= simulated_quote['price']:
+                                if trade_sum['size'][i] < simulated_quote['size']:
+                                    simulated_trade['level'].append(trade_sum['level'][ii])
+                                    simulated_trade['price'].append(trade_sum['price'][ii])
+                                    simulated_trade['size'].append(trade_sum['size'][ii])
+                                    simulated_quote['size'] -= simulated_trade['size'][ii]
                                     i = i - 1
                                     ii = ii + 1
                                 else:
-                                    simulated_trade['level'][ii] = trade_sum['level'][ii]  # 能不能在trade_sum里面多一列level????????
-                                    simulated_trade['price'][ii] = trade_sum['price'][ii]
-                                    simulated_trade['size'][ii] = quote['size']
-                                    quote['size'] -= simulated_trade['size'][ii]
+                                    simulated_trade['level'].append(trade_sum['level'][ii])
+                                    simulated_trade['price'].append(trade_sum['price'][ii])
+                                    simulated_trade['size'].append(simulated_quote['size'])
+                                    simulated_quote['size'] -= simulated_trade['size'][ii]
                                     break
                         else:
-                            simulated_trade['level'][0] = 0  # 一点也没成交 simulated_trade 0 0
+                            simulated_trade['level'][0] = 0
                             simulated_trade['price'][0] = 0
                             simulated_trade['size'][0] = 0
                     else:
-                        # 一点也没成交 simulated_trade 0 0
                         simulated_trade['level'][0] = 0
                         simulated_trade['price'][0] = 0
                         simulated_trade['size'][0] = 0
-        '''返回列表？？怎么把simulated_trade 加到simulated_all_trade 中'''
-        self._simulated_all_trade=self._simulated_all_trade+simulated_trade
+        self._simulated_all_trade['level'].append(simulated_trade['level'])
+        self._simulated_all_trade['price'].append(simulated_trade['price'])
+        self._simulated_all_trade['size'].append(simulated_trade['size'])
         return(simulated_trade)
 
 
