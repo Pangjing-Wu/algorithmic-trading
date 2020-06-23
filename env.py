@@ -119,7 +119,7 @@ class AlgorithmTrader(object):
 
 
 
-    def _transaction_matching(self,quote,trade,action,simulated_quote ) -> 'simulated_trade':
+    def _transaction_matching(self,quote,trade,action,simulated_quote,strategy_direction) -> 'simulated_trade':
         simulated_trade = {'level': [], 'price': [], 'size': []}
         if self._simulated_quote['size'] != 0:
             (kind, newlevel) = self._action2level(action)
@@ -243,7 +243,9 @@ class AlgorithmTrader(object):
 
 
     def _vwap(self, trade):
-        map(lambda x, y: x * y / sum(y), trade['price'], trade['size'])
+        total_volume = sum(trade['size'])
+        vwap = sum(map(lambda x, y: x * y, trade['price'], trade['size'])) / total_volume
+        return vwap
 
     def _twap(self, trade):
         pass
