@@ -8,12 +8,12 @@ class AlgorithmTrader(object):
     def __init__(
             self,
             td:TickData,
-            strategy_direction,
+
             wait_t,
             max_level=5  # TODO rewrite corresponding codes.
     ):
 
-        self.strategy_direction=strategy_direction
+
         self._n = 0
         self._td = td
         self.simulated_quote = {'level': None, 'price': None, 'size': None}
@@ -54,7 +54,7 @@ class AlgorithmTrader(object):
 
 
 
-    def _transaction_matching(self,action,simulated_quote ) -> 'simulated_trade':
+    def _transaction_matching(self,action,simulated_quote,strategy_direction) -> 'simulated_trade':
         self._n = 0
         self._t = self._td.quote_timeseries[self._n]
         quote = self._td.get_quote(self._t)
@@ -64,7 +64,7 @@ class AlgorithmTrader(object):
         if simulated_quote['size'] != 0:
             (kind,newlevel) = self._action2level(simulated_quote['level'])
             print(kind,newlevel)
-            if self.strategy_direction=='buy':
+            if strategy_direction=='buy':
                if kind=='ask':  # 如果levelkind是'ask',则现在可以直接成交，只考虑quote中的数量
                     i=1 #真实level的数值
                     ii=0 #现在的simulated_trade里有几个值
@@ -87,13 +87,13 @@ class AlgorithmTrader(object):
                             self.simulated_quote['size'] -= simulated_trade['size'][ii]
                             break
                else:  # level kind,是 bid,则需要排队并且考虑trade
-                    wait_t=self._wait_t
+                    wait_t=self.wait_t
                     if action['size'] != 0:
                         self._wait_signal = 0
                     else :
                         self._wait_signal= self._wait_signal +1
                     if self._wait_signal >= wait_t:
-                        trade_sum=self.td.trade_sum(trade)
+                        trade_sum=self._td.trade_sum(trade)
                         if trade_sum['price'][0]<=self.simulated_quote['price'] :   #说明存在比我提交的价格低的值成交了
                            i=0
                            ii=0
@@ -184,23 +184,22 @@ class AlgorithmTrader(object):
 
 
 dbdir = 'F:\\融创课题\\数据百度云\\201406(2)\\20140630'
-trader1=AlgorithmTrader(td=dataset('000001', dbdir, 'cra001', 'cra001'),strategy_direction='sell',wait_t=3)
-action1={'level':5 , 'price':9.810,'size':80000}
-trader1.simulated_quote={'level':5 , 'price':9.810,'size':80000}
-print(trader1._transaction_matching(action=action1,simulated_quote=trader1.simulated_quote))
+trader1=AlgorithmTrader(td=dataset('000001', dbdir, 'cra001', 'cra001'),wait_t=3)
+action1={'level':4 , 'price':9.800,'size':80000}
+trader1.simulated_quote={'level':4 , 'price':9.800,'size':80000}
+print(trader1._transaction_matching(action=action1,simulated_quote=trader1.simulated_quote,strategy_direction='buy'))
 print(trader1.simulated_quote)
 
 action1={'level':0 , 'price':0,'size':0}
-print(trader1._transaction_matching(action=action1,simulated_quote=trader1.simulated_quote))
+print(trader1._transaction_matching(action=action1,simulated_quote=trader1.simulated_quote,strategy_direction='buy'))
 print(trader1.simulated_quote)
 
 action1={'level':0 , 'price':0,'size':0}
-print(trader1._transaction_matching(action=action1,simulated_quote=trader1.simulated_quote))
+print(trader1._transaction_matching(action=action1,simulated_quote=trader1.simulated_quote,strategy_direction='buy'))
 print(trader1.simulated_quote)
 
 action1={'level':0 , 'price':0,'size':0}
-print(trader1._transaction_matching(action=action1,simulated_quote=trader1.simulated_quote))
+print(trader1._transaction_matching(action=action1,simulated_quote=trader1.simulated_quote,strategy_direction='buy'))
 print(trader1.simulated_quote)
-
 
 
