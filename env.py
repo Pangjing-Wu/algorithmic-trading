@@ -1,6 +1,6 @@
 import numpy as np
 
-from tickdata import TickData
+from tickdata import TickData, dataset
 
 
 class AlgorithmTrader(object):
@@ -249,3 +249,7 @@ class AlgorithmTrader(object):
 
     def _twap(self, trade):
         pass
+
+
+data = dataset('000001', 'dbdir', 'cra001', 'cra001')
+trader1 = AlgorithmTrader(data, strategy_direction='sell', wait_t=3)
