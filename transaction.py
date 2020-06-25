@@ -54,6 +54,7 @@ def trasaction_matching(self, quote, trade, simulated_order) -> 'simulated_trade
                     simulated_trade['size'].append(simulated_order['size'])
                     simulated_order['size'] = 0
                     break
+    return(simulated_order, simulated_trade)
 
     # case 2, direction is 'buy' and level is 'bid', wait in trading queue.
     if simulated_order['direction'] == 'buy':
@@ -83,6 +84,7 @@ def trasaction_matching(self, quote, trade, simulated_order) -> 'simulated_trade
                             simulated_trade['size'].append(simulated_order['size'])
                             simulated_order['size'] = 0
                             break
+    return(simulated_order, simulated_trade)
 
     # case 3, direction is 'sell' and level is 'bid', transact directly.                            
     if simulated_order['direction'] == 'sell':
@@ -105,6 +107,7 @@ def trasaction_matching(self, quote, trade, simulated_order) -> 'simulated_trade
                     simulated_trade['size'].append(simulated_order['size'])
                     simulated_order['size'] = 0
                     break
+    return(simulated_order, simulated_trade)
 
     # case 4, direction is 'sell' and level is 'ask', wait in trading queue.
     if simulated_order['direction'] == 'sell':
@@ -134,5 +137,4 @@ def trasaction_matching(self, quote, trade, simulated_order) -> 'simulated_trade
                             simulated_trade['size'].append(simulated_order['size'])
                             simulated_order['size'] = 0
                             break
-
     return(simulated_order, simulated_trade)
