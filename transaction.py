@@ -6,7 +6,8 @@ def trasaction_matching(quote, trade, simulated_order)->tuple(dict, dict):
     trade: pd.Dataframe
     simulated_order: dict, keys are formed by
                      ('direction', 'level', 'size', 'pos')
-
+    # TODO actual order is given by price, not by level.
+    
     returns:
     --------
     simulated_trade: (dict of traded, dict of res)
