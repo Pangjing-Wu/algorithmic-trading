@@ -15,7 +15,7 @@ class AlgorithmTrader(object):
             wait_t=0,
             max_level=5
     ):
-        self._id = td
+        self._td = td
         self._res_volume = total_volume
         self._wait_t = wait_t # TODO add wait_t mechanism
         self._level_space = list(range(max_level * 2))
