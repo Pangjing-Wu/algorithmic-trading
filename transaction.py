@@ -1,4 +1,4 @@
-def trasaction_matching(quote, trade, simulated_order)->tuple:
+def transaction_matching(quote, trade, simulated_order)->tuple:
     '''
     arguments:
     ----------
