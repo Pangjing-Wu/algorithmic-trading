@@ -1,41 +1,54 @@
-# trading-strategy-environment
- A reinforcement learning environment for simulating trading strategy
-## Configuration
-### dataloader.py
-#### class H2Connection()
- At the first, it can only perfectly support Linux/MacOS in automaticly strating H2 service, since it has defect in starting H2 service of Windows. Now it can specify user's operation system and provide a humble function for Windows users.
-#### class TickData()
-* Attributes:
-    * Some attributes to describe data characteristics.
-    * Such as **quote** and **trade** data length, start and end timestamps, etc.
-* Methods:
-    * \_\_init__(data:*h2.database*, stock_code, range)->*pandas.DataFrame*:
-        1. Use python library "psycopg" to link h2 database and transform to pandas.DataFrame;
-        2. Select a specific stock;
-        3. Drop noise;
-        4. Meger (or concatenate) quote and trade data and sort by time;
-        5. Set tags to specify which type (quote or trade) each line is;
-        6. Fill null data. What value to use to fill N/A caused by limit up/down?
-    * Get previous/next quote data of current quote/trade.
-    * Get trade data between two quote (support one or two arguments) and its statistics.
-    * Get quote series
-    * Generate quote series (which is generator type).
-    * Get time series of all/quote/trade data.
+# Algorithm-trading-environment
 
-Note: It would be better to design data structures (class or namedtuple) for quote and trade.
+**Algorithm-trading-environment** is a simulating trading environment designed for reinforcement learning agents. It is running on **tick-level** quote and trade data to reproduce trading process incorprating with new simulated orders. 
+ 
+Like general reinforcement learning environment, **algorithm-trading-environment** also can be represented by an environment tuple $(s, a, p, r)$, where:
+* environment state $s$ is a numerical vector that consists of current actual quote ($i.e.$ market state) and simulated order status ($i.e.$ agent state);
+* action $a$ is a tuple likes ("trading direction", "level", "size") given by agent;
+* transition probability $p$ describes state transition in general reinforcement learning environment, but the transition is constant and sequential in this environment;
+* reward $r$ denotes transaction cost of trading strategies.
 
-### env.py
-#### class AlgorithmTrader()
-* Attributes:
-    * Some attributes to describe _<s,a,r,p>_.
-    * Simulated order book.
-    * Environment records (i.e. info of setp).
-* Methods:
-    * \_\_init__(TickData, strategy_direction, volume, reward_function: *callable* or *str*, [arguments to describe environment]):
-    * reset(): rest environment.
-    * next_s, reward, signal, info = step(action):
-        1. Issue an order;
-        2. Matching transactions;
-        3. Calculate reward;
-        4. Give a final signal;
-        5. Refresh the real/simulated order book and go to next step.
+
+## Installation
+
+Download zip file or clone this program by git.
+
+*#TODO*: we will release it as a python module in the future.
+
+
+## Usage
+
+Here is a quick start example for loading **algorithm-trading-environment**.
+
+
+## Contents
+
+* [env.py](env.py) is main file of **algorithm-trading-environment**, provides reacting trading environment interface for agent.
+* [transaction.py](transaction.py) is transaction matching module to executing simulated order by matching it with actual quote and trade data.
+* [tickdata.py](tickdata.py) creates a class for tick-level data, which provides abundant function for query and processing quote or trade records.
+* [h2db.py](h2db.py) is h2 database connection and query module.
+
+Besides, [tutorial](./tutorial) contains some examples of guiding to use the envronment, [test](./test) contains test configuration and test cases, [config](./config) defines some constant and variable that not changes often.
+
+
+## Module design
+
+The core of this program is to match simulated order with actual quote and trade data to evaluate transaction cost. To address this problem, we need to
+
+1. preprocess actual quote and trade data;
+2. issue simulated order and match it with actual quote and trade data;
+3. sequencially execute transaction matching process.
+
+For the first point, since raw data is stored in H2 database, we firstly design a module [h2bd.py](h2db.py) to read the raw tick data. [h2bd.py](h2db.py) provides `H2Connection` class to get connection with H2 database by `psycopg2` library. It support automatically detect H2 service status and start H2 service for MacOS/Linux. Data query is conducted by executing `H2Connection.query` with normal SQL language.
+
+Then, these raw data are preprocessed and transformed to `TickData` class which defined in [tickdata.py](tickdata.py). It provides abundant function for processing quote and trade data, such as `get_quote` or `get_trade` record(s) by timestamp, get `pre_quote` or `next_quote` by timestamp or quote record, and `get_trade_between` two quotes, even you can tranform quote from record form to quote board form by `quote_board`.
+
+For the second point, we design `transaction_matching` function in [transaction.py](transaction.py) to match simulated order with actual quote and trade data. It considers 4 transaction matching situations, which are
+1. when simulated order's direction is 'buy' and price level is 'ask', the order deals directly.
+2. when simulated order's direction is 'buy' and price level is 'bid', the order waits in queue until previous quote orders are traded.
+3. when simulated order's direction is 'sell' and price level is 'bid', the order deals directly.
+4. when simulated order's direction is 'sell' and price level is 'ask', the order waits in queue until previous quote orders are traded.
+
+For the third point, we design `AlgorithmTrader` in [env.py](evn.py) whose interface is like the famous reinforcement learning library `gym`. It provides `reset` to initiate or reset environment and `step` to execute agent's action in environment.
+
+## Function interface
