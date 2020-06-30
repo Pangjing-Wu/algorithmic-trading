@@ -35,13 +35,7 @@ td = TickData(quote, trade)
 > Build transaction environment by `TickData`.
 ```python
 from env import AlgorithmTrader
-trader = AlgorithmTrader(
-            td=td,
-            total_volume=20000,
-            reward_function='vwap',
-            wait_t=0,
-            max_level=5
-        )
+trader = AlgorithmTrader(td=td, total_volume=20000, reward_function='vwap', wait_t=0, max_level=5)
 trader.reset()
 action = {'direction': 'buy', 'price': 10.0, 'size': 500}
 trader.step(action)
