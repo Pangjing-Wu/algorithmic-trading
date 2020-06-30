@@ -117,7 +117,7 @@ class TickData(object):
         else:
             return trade[['price', 'size']].groupby('price').sum().reset_index()
 
-
+'''
 def dataset(stock, dbdir, user, psw, config=None)->TickData:
     if config is None:
         config = json.load(open('config/data.json', 'r'))
@@ -138,3 +138,4 @@ def dataset(stock, dbdir, user, psw, config=None)->TickData:
     else:
         raise ConnectionError("cannot connect to H2 service, please strat H2 service first.")
     return TickData(data)
+'''
