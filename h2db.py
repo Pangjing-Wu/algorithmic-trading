@@ -43,7 +43,7 @@ class H2Connection(object):
             self.cur = self.conn.cursor()
 
     def query(self, sql: str, *args)->pd.DataFrame:
-        self.cur.execute(sql, args)
+        self.cur.execute(sql, *args)
         data = self.cur.fetchall()
         data = pd.DataFrame(data)
         return data
