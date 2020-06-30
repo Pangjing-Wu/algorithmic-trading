@@ -8,13 +8,10 @@ from h2db import H2Connection
 
 class TickData(object):
 
-    def __init__(self, data: pd.DataFrame):
-        self._data = data.copy()
+    def __init__(self, quote: pd.DataFrame, trade: pd.DataFrame):
         # divide quote and trade.
-        self._quote = data[data['type'] == 'quote'].drop('type', axis=1)
-        self._quote = self._quote.dropna(axis=1).reset_index(drop=True)
-        self._trade = data[data['type'] == 'trade'].drop('type', axis=1)
-        self._trade = self._trade.dropna(axis=1).reset_index(drop=True)
+        self._quote = quote
+        self._trade = trade
         # set data type.
         int_type_cols   = self._quote.filter(like='size').columns.tolist()
         float_type_cols  = self._quote.filter(like='ask').columns.tolist()
@@ -26,10 +23,6 @@ class TickData(object):
     
     def __len__(self):
         return self._data.shape[0]
-
-    @property
-    def get_data(self):
-        return self._data
 
     @property
     def quote_timeseries(self):
