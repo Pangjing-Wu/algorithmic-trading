@@ -16,7 +16,7 @@ class AlgorithmTrader(object):
             max_level=5
     ):
         self._td = td
-        self._res_volume = total_volume
+        self._total_volume = total_volume
         self._wait_t = wait_t # TODO add wait_t mechanism
         self._level_space = list(range(max_level * 2))
         self._level_space_n = len(self._level_space)
@@ -36,7 +36,7 @@ class AlgorithmTrader(object):
     @property
     def current_time(self):
         try:
-            return self._iime[self._i]
+            return self._time[self._i]
         except AttributeError:
             raise NotInitiateError
 
@@ -49,18 +49,19 @@ class AlgorithmTrader(object):
 
     @property
     def res_volume(self):
-        return self.res_volume
+        return self._res_volume
 
     def reset(self)->np.array:
         self._init = True
         self._final = False
         self._i = 0
+        self._res_volume = self._total_volume
         self._simulated_all_trade = {'price': [], 'size': []}
-        env_s = self._id.quote(self._iime[0]).drop('time', axis=1)
+        env_s = self._id.quote(self._time[0]).drop('time', axis=1)
         env_s = env_s.values.reshape(-1)
         agt_s = [self._res_volume, 0, 0]
-        s0 = np.append(env_s, agt_s, axis=0)
-        return s0
+        s_0   = np.append(env_s, agt_s, axis=0)
+        return s_0
 
     def step(self, action):
         '''
@@ -167,7 +168,7 @@ class AlgorithmTrader(object):
         else:
             raise KeyError('the transaction direction in action must be 0 or 1')
         level = self._action2level(action[1])
-        price = self._id.get_quote(self._iime[self._i])[level]
+        price = self._id.get_quote(self._time[self._i])[level]
         order = {'direction':direction, 'price':price, 'size': action[2], 'pos': -1}
         return order
 
