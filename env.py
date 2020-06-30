@@ -74,7 +74,7 @@ class AlgorithmTrader(object):
         next_s: np.array, next state of environment and agent.
         reward: float, environment rewards.
         signal: bool, final signal.
-        info: str, transaction information.
+        info: str, detailed transaction information of simulated orders.
         '''
         # raise exception if not initiate or reach final.
         if self._init == False:
@@ -95,6 +95,8 @@ class AlgorithmTrader(object):
             info += 'execute remaining order; '
         # transaction matching
         order, traded = transaction_matching(quote, trade, order)
+        self._simulated_all_trade['price'] += traded['price']
+        self._simulated_all_trade['size']  += traded['size']
         self._res_volume -= sum(traded['size'])
         info += 'after matching, %s hand(s) were traded at %s and' \
                 '%s hand(s) waited to trade at %s; total.' % (
