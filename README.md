@@ -2,7 +2,7 @@
 
 **Algorithm-trading-environment** is a simulating trading environment designed for reinforcement learning agents. It is running on **tick-level** quote and trade data to reproduce trading process incorprating with new simulated orders. 
  
-Like general reinforcement learning environment, **algorithm-trading-environment** also can be represented by an environment tuple $(s, a, p, r)$, where:
+Like general reinforcement learning environment, **algorithm-trading-environment** can be represented by a tuple of $(s, a, p, r)$, where:
 * environment state $s$ is a numerical vector that consists of current actual quote (i.e. market state) and simulated order status (i.e. agent state);
 * action $a$ is a tuple likes ("trading direction", "level", "size") given by agent;
 * transition probability $p$ describes state transition in general reinforcement learning environment, but the transition is constant and sequential in this environment;
@@ -11,9 +11,13 @@ Like general reinforcement learning environment, **algorithm-trading-environment
 
 ## Installation
 
-Download zip file or clone this program by git.
+Download zip file or use `git clone`.
 
-*#TODO*: we will release it as a python module in the future.
+```bash
+$ git clone https://github.com/Pangjing-Wu/algorithm-trading-strategy-environment.git
+```
+
+*TODO*: we will release it as a python module in the future.
 
 
 ## Usage
@@ -27,7 +31,7 @@ h2 = H2Connection(dbdir, user, psw, config)
 quote = h2.query('QUOTE_000001')
 trade = h2.query('TRADE_000001')
 ```
-> Create `TickData` to storage and preprocess raw tick data.
+> Create `TickData` to store and preprocess raw tick data.
 ```python
 from tickdata import TickData
 td = TickData(quote, trade)
@@ -77,4 +81,83 @@ For the second point, we design `transaction_matching` function in [transaction.
 
 For the third point, we design `AlgorithmTrader` in [env.py](evn.py) whose interface is like the famous reinforcement learning library `gym`. It provides `reset` to initiate or reset environment and `step` to execute agent's action in environment.
 
-## Function interface
+## Interfaces description
+#### [env.py](env.py)
+
+
+* AlgorithmTrader()
+    > Main class of algorithm trading environment, simulate order stransaction and provide reacting interface for agent.
+
+    ##### input:
+    |variable|type|description|
+    |:---|:---|:---|
+    |td|`TickData`|tick data.|
+    |total_volume|`int`|total issued orders' volume.|
+    |reward_function|`str` or `callable`|environment reward funciton.|
+    |wait_t|`int`|waiting time befor executing order.|
+    |max_level|`int`|max level of trading environment.|
+
+    #### attributes:
+    |variable|type|description|
+    |:---|:---|:---|
+    |_i|`int`|iteration index|
+    |_td|`TickData`|tick data.|
+    |_total_volume|`int`|total volume.|
+    |_wait_t|`int`|waiting time befor executing order.|
+    |_level_space|`list`|all levels in action space.|
+    |_level_space_n|`int`|number of levels in action space.|
+    |_reward_function|`str` or `callable`|environment reward funciton.|
+    |_time|`list`|timestamp series of quote.|
+    |_init|`bool`|is the environment has been initiated.|
+    |_final|`bool`|is the environment terminated.|
+    |_res_volume|`int`|residual orders' volume|
+    |_simulated_all_trade|`dict`|all traded simulated order |records, keys are ('price', 'size')|
+    |level_space|`@property`|public interface of `_level_space`|
+    |level_space_n|`@property`|public interface of `_level_space_n`|
+    |current_time|`@property`|public interface of `_time`|
+    |trade_results|`@property`|public interface of `_simulated_all_trade`|
+
+
+    #### methods:
+    * reset()
+    > A function to intiate or reset environment, including set `self._init = True`, `self._final = False`, `self._i = 0`, `self._res_volume = self._total_volume` and clear `simulated_all_trade = {'price': [], 'size': []}`. It returns the initial state of environment and agent.
+    ##### output:
+    |variable|type|description|
+    |:---|:---|:---|
+    |s_0|`np.array`|initial state of environment and agent.|
+
+    * step()
+    > A function to step-by-step simulate transaction of orders issued by reinforcement learning agent. It firstly calls `transaction_matching()` to match simulated orders with real quote and trade data. Then according trading results, it calculates transaction cost and determines whether the environment is terminated.
+
+    ##### input:
+    variable|type|description|
+    |:---|:---|:---|
+    |action|`tuple`, `list`, array like|agent's action, like (direction, price, size).|
+
+    ##### output:
+    variable|type|description|
+    |:---|:---|:---|
+    |next_s|`np.array`|next state of environment and agent|
+    |reward|`float`|environment rewards|
+    |signal|`bool`|final signal|
+    |info|`str`|detailed transaction information of simulated orders|
+#### [transaction.py](transaction.py)
+* transaction_matching()
+    > A function for matching simulated order with real quote and trade data. It considers 4 transaction matching situations, which are 1) when simulated order's direction is 'buy' and price level is 'ask', the order deals directly, 2) when simulated order's direction is 'buy' and price level is 'bid', the order waits in queue until previous quote orders are traded, 3) when simulated order's direction is 'sell' and price level is 'bid', the order deals directly, 4) when simulated order's direction is 'sell' and price level is 'ask', the order waits in queue until previous quote orders are traded.
+    ##### input:
+
+    |name|type|mean|
+    |:---|:---|:---|
+    |quote|`pd.DataFrame`|quote board data of time t.|
+    |trade|`pd.DataFrame`|trade data of time t.|
+    |simulated_order|`dict`|issued simulated order, keys are (direction, price, size, pos), where `pos` is order's position in waiting queue, `pos=-1` denote a new order.|
+
+    ##### output:
+
+    |name|type|mean|
+    |:---|:---|:---|
+    |simulated_order|`dict`|residual simulated order, keys are ('direction', 'price', 'size', 'pos'), where `pos` is order's position in waiting queue, `pos=-1` denote a new order.|
+    |simulated_trade|`dict`|traded records, keys are ('price', 'size').
+
+#### [tickdata.py](tickdata.py)
+#### [h2db.py](h2db.py)
