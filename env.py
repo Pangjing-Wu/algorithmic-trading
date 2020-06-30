@@ -21,7 +21,7 @@ class AlgorithmTrader(object):
         self._level_space = list(range(max_level * 2))
         self._level_space_n = len(self._level_space)
         self._reward_function = reward_function
-        self._time = self._id.quote_timeseries
+        self._iime = self._id.quote_timeseries
         self._init = False
         self._final = False
         
