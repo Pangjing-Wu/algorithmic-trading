@@ -85,7 +85,7 @@ We design `transaction_matching` function in [transaction.py](transaction.py) to
 We design `AlgorithmTrader` in [env.py](evn.py) whose interface is like the famous reinforcement learning library `gym`. It provides `reset` to initiate or reset environment and `step` to execute agent's action in environment.
 
 ## Interface document
-The detailed interface document are presented in [interface.md](doc/interface.md).
+The detailed interface document are presented in [interface](doc/interface.md).
 
 ## Contributer
 * [Pangjing-Wu](https://github.com/Pangjing-Wu)
