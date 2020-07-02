@@ -380,6 +380,7 @@
         |variable|type|description|
         |:---|:---|:---|
         |tick|`pd.DataFrame`|a quote record in quote board shape.|
+        
     * get_quote()
         > get quote record(s) by timestamp(s), *i.e.*
 
@@ -460,6 +461,7 @@
         |variable|type|description|
         |:---|:---|:---|
         |quote|`pd.DataFrame`|previous one quote record, return `None` if there is no previous record|
+
     * next_quote()
         > get next one quote record by timestamp
         ##### input:
@@ -483,6 +485,7 @@
         |variable|type|description|
         |:---|:---|:---|
         |quote|`pd.DataFrame`|next one quote record, return `None` if there is no next record|
+
     * get_trade_between()
         > get all trade record(s) between two quote records.
         ##### input:
@@ -519,6 +522,7 @@
         |variable|type|description|
         |:---|:---|:---|
         |trade|`pd.DataFrame`|trade records, return `None` if there is no next record|
+
     * trade_sum()
         > combine trade records with the same price.
         ##### input:
@@ -569,7 +573,7 @@
     ##### method:
     * new_connect()
         > create new H2 connection, it can automatically detect and start H2 service for MacOS/Linux.
-        * input:
+        ##### input:
         |argument|type|description|
         |:---|:---|:---|
         |dbdir|`str`|quote data.|
