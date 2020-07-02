@@ -5,7 +5,7 @@ import time
 import pandas as pd
 import psycopg2
 
-
+# TODO improve logger module
 class H2Connection(object):
 
     def __init__(self, dbdir, user, password, host='localhost', port='5435', h2_start_wait=3):
@@ -16,19 +16,19 @@ class H2Connection(object):
         # for windows
         if os.name == 'nt':
             try:
-                return self.conn
+                return self._conn
             except NameError:
                 return False
         # for Linux/MacOS
         else:
             if self._is_h2_online():
-                return self.conn
+                return self._conn
             else:
                 return False
 
     def new_connect(self, dbdir, user, password, host='localhost', port='5435', h2_start_wait=3):
         try:
-            self.conn = psycopg2.connect(dbname=dbdir, user=user, password=password, host=host, port=port)
+            self._conn = psycopg2.connect(dbname=dbdir, user=user, password=password, host=host, port=port)
         except psycopg2.OperationalError as e:
             if os.name == 'nt':
                 raise ConnectionError("H2 service is not running." \
@@ -38,13 +38,13 @@ class H2Connection(object):
                     " Please double check username and password or restart h2 service manually.")
             else:
                 self._start_h2_service(h2_start_wait)
-                self.conn = psycopg2.connect(dbname=dbdir, user=user, password=password, host=host, port=port)
+                self._conn = psycopg2.connect(dbname=dbdir, user=user, password=password, host=host, port=port)
         finally:
-            self.cur = self.conn.cursor()
+            self._cur = self._conn.cursor()
 
     def query(self, sql: str, *args)->pd.DataFrame:
-        self.cur.execute(sql, *args)
-        data = self.cur.fetchall()
+        self._cur.execute(sql, *args)
+        data = self._cur.fetchall()
         data = pd.DataFrame(data)
         return data
 
