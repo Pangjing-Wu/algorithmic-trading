@@ -116,26 +116,3 @@ class TickData(object):
             return None
         else:
             return trade[['price', 'size']].groupby('price').sum().reset_index()
-
-'''
-def dataset(stock, dbdir, user, psw, config=None)->TickData:
-    if config is None:
-        config = json.load(open('config/data.json', 'r'))
-    else:
-        config = json.load(open(config, 'r'))
-    # connect h2db and query.
-    h2 = H2Connection(dbdir, user, psw, **config['h2setting'])
-    QUOTE_COLS = config['sql']['QUOTE_COLS']
-    TRADE_COLS = config['sql']['TRADE_COLS']
-    TIMES = config['sql']['TIMES']
-    if h2.status:
-        sql = config['sql']['str'] % eval(config['sql']['pattern'])
-        data = h2.query(sql)
-        data.columns = config['tickdata']['TICK_COLS']
-        data['type'] = None
-        for i in data.index:
-            data.loc[i, 'type'] = 'trade' if data.loc[i, 'bid1'] == None else 'quote'
-    else:
-        raise ConnectionError("cannot connect to H2 service, please strat H2 service first.")
-    return TickData(data)
-'''
