@@ -13,8 +13,8 @@ class TickData(object):
         self._quote = quote
         self._trade = trade
         # set data type.
-        int_type_cols   = self._quote.filter(like='size').columns.tolist()
-        float_type_cols  = self._quote.filter(like='ask').columns.tolist()
+        int_type_cols = self._quote.filter(like='size').columns.tolist()
+        float_type_cols = self._quote.filter(like='ask').columns.tolist()
         float_type_cols += self._quote.filter(like='bid').columns.tolist()
         self._quote[int_type_cols]  = self._quote[int_type_cols].astype(int)
         self._quote[float_type_cols] = self._quote[float_type_cols].astype(float)
@@ -22,7 +22,7 @@ class TickData(object):
         self._trade['size']  = self._trade['size'].astype(int)
     
     def __len__(self):
-        return self._data.shape[0]
+        return (self._quote.shape[0] + self._trade.shape[0])
 
     @property
     def quote_timeseries(self):

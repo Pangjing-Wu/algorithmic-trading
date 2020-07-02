@@ -21,7 +21,7 @@ class AlgorithmTrader(object):
         self._level_space = list(range(max_level * 2))
         self._level_space_n = len(self._level_space)
         self._reward_function = reward_function
-        self._time = self._id.quote_timeseries
+        self._time = self._td.quote_timeseries
         self._init = False
         self._final = False
         
@@ -57,7 +57,7 @@ class AlgorithmTrader(object):
         self._i = 0
         self._res_volume = self._total_volume
         self._simulated_all_trade = {'price': [], 'size': []}
-        env_s = self._id.quote(self._time[0]).drop('time', axis=1)
+        env_s = self._td.quote(self._time[0]).drop('time', axis=1)
         env_s = env_s.values.reshape(-1)
         agt_s = [self._res_volume, 0, 0]
         s_0   = np.append(env_s, agt_s, axis=0)
@@ -83,11 +83,11 @@ class AlgorithmTrader(object):
         if self._final == True:
             raise EnvTerminatedError
         # get current timestamp.
-        t = self._id.quote_timeseries[self._i]
+        t = self._td.quote_timeseries[self._i]
         info = 'At %s ms, ' % t
         # load quote and trade.
-        quote = self._id.quote_board(t)
-        trade = self._id.get_trade_between(t)
+        quote = self._td.quote_board(t)
+        trade = self._td.get_trade_between(t)
         # issue an order if the size of action great than 0.
         if action[-1] > 0:
             order = self._action2order(action) 
@@ -105,7 +105,7 @@ class AlgorithmTrader(object):
                     order['size'], order['price']
                 )
         # give a final signal
-        if t == self._id.quote_timeseries[-2]:
+        if t == self._td.quote_timeseries[-2]:
             self._final = True
         elif self._res_volume == 0:
             self._final = True
@@ -122,7 +122,7 @@ class AlgorithmTrader(object):
                 if self._reward_function == 'vwap':
                     reward = self._vwap(self._simulated_all_trade)
                 elif self._reward_function == 'twap':
-                    reward = self._iwap(self._simulated_all_trade)
+                    reward = self._twap(self._simulated_all_trade)
                 else:
                     reward = self._reward_function(self._simulated_all_trade)
             # if order not completed.
@@ -131,7 +131,7 @@ class AlgorithmTrader(object):
         else:
             reward = 0.
         # go to next step.
-        env_s = self._id.next_quote(t).drop('time', axis=1).values.reshape(-1)
+        env_s = self._td.next_quote(t).drop('time', axis=1).values.reshape(-1)
         agt_s = [self._res_volume] + traded['price'] + traded['size']
         next_s = np.append(env_s, agt_s, axis=0)
         return (next_s, reward, self._final, info)
@@ -168,7 +168,7 @@ class AlgorithmTrader(object):
         else:
             raise KeyError('the transaction direction in action must be 0 or 1')
         level = self._action2level(action[1])
-        price = self._id.get_quote(self._time[self._i])[level]
+        price = self._td.get_quote(self._time[self._i])[level]
         order = {'direction':direction, 'price':price, 'size': action[2], 'pos': -1}
         return order
 
