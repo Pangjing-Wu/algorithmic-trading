@@ -28,8 +28,8 @@ Here is a quick start example for loading **algorithm-trading-environment**.
 ```python
 from h2db import H2Connextion
 h2 = H2Connection(dbdir, user, psw, config)
-quote = h2.query('QUOTE_000001')
-trade = h2.query('TRADE_000001')
+quote = h2.query('select QUOTE_000001')
+trade = h2.query('select TRADE_000001')
 ```
 > Create `TickData` to store and preprocess raw tick data.
 ```python
@@ -66,7 +66,7 @@ The core of this program is to match simulated order with actual quote and trade
 
 > Read data from H2 database and convert to some type that is easy to handle in Python
 
-Since raw data is stored in H2 database, we firstly design a module [h2bd.py](h2db.py) to read the raw tick data. [h2bd.py](h2db.py) provides `H2Connection` class to get connection with H2 database by `psycopg2` library. It support automatically detect H2 service status and start H2 service for MacOS/Linux. Data query is conducted by executing `H2Connection.query` with normal SQL language.
+Since raw data is stored in H2 database, we firstly design a module [h2bd.py](h2db.py) to read the raw tick data. [h2bd.py](h2db.py) provides `H2Connection` class to get connection with H2 database under the protocol provided by `psycopg2` library. It support automatically detect H2 service status and start H2 service for MacOS/Linux. Data query is conducted by executing `H2Connection.query`.
 
 > Preprocess actual quote and trade data
 

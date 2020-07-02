@@ -28,7 +28,7 @@
         self._level_space = list(range(max_level * 2))
         self._level_space_n = len(self._level_space)
         self._reward_function = reward_function
-        self._time = self._id.quote_timeseries
+        self._time = self._td.quote_timeseries
         self._init = False
         self._final = False
     ```
@@ -64,7 +64,7 @@
             self._i = 0
             self._res_volume = self._total_volume
             self._simulated_all_trade = {'price': [], 'size': []}
-            env_s = self._id.quote(self._time[0]).drop('time', axis=1)
+            env_s = self._td.quote(self._time[0]).drop('time', axis=1)
             env_s = env_s.values.reshape(-1)
             agt_s = [self._res_volume, 0, 0]
             s_0   = np.append(env_s, agt_s, axis=0)
@@ -92,11 +92,11 @@
             if self._final == True:
                 raise EnvTerminatedError
             # get current timestamp.
-            t = self._id.quote_timeseries[self._i]
+            t = self._td.quote_timeseries[self._i]
             info = 'At %s ms, ' % t
             # load quote and trade.
-            quote = self._id.quote_board(t)
-            trade = self._id.get_trade_between(t)
+            quote = self._td.quote_board(t)
+            trade = self._td.get_trade_between(t)
             # issue an order if the size of action great than 0.
             if action[-1] > 0:
                 order = self._action2order(action) 
@@ -114,7 +114,7 @@
                         order['size'], order['price']
                     )
             # give a final signal
-            if t == self._id.quote_timeseries[-2]:
+            if t == self._td.quote_timeseries[-2]:
                 self._final = True
             elif self._res_volume == 0:
                 self._final = True
@@ -131,7 +131,7 @@
                     if self._reward_function == 'vwap':
                         reward = self._vwap(self._simulated_all_trade)
                     elif self._reward_function == 'twap':
-                        reward = self._iwap(self._simulated_all_trade)
+                        reward = self._twap(self._simulated_all_trade)
                     else:
                         reward = self._reward_function(self._simulated_all_trade)
                 # if order not completed.
@@ -140,7 +140,7 @@
             else:
                 reward = 0.
             # go to next step.
-            env_s = self._id.next_quote(t).drop('time', axis=1).values.reshape(-1)
+            env_s = self._td.next_quote(t).drop('time', axis=1).values.reshape(-1)
             agt_s = [self._res_volume] + traded['price'] + traded['size']
             next_s = np.append(env_s, agt_s, axis=0)
             return (next_s, reward, self._final, info)
@@ -542,3 +542,78 @@
         |trade|`pd.DataFrame`|trade records' sum grouped by thier price.|
 
 #### [h2db.py](h2db.py)
+* Class H2Connection
+    > connect H2 database and query data by SQL.
+    ##### input:
+    |argument|type|description|
+    |:---|:---|:---|
+    |dbdir|`str`|quote data.|
+    |user|`str`|trade data.|
+    |password|`str`|database password.|
+    |host|`str`|database host, defult is `'localhost'`|
+    |port|`str`|database port, defult is `'5435'`|
+    |h2_start_wait|`int`|wait time to start h2 service|
+
+    ```python
+    class H2Connection(object):
+
+    def __init__(self, dbdir, user, password, host='localhost', port='5435', h2_start_wait=3):
+        self.new_connect(dbdir, user, password, host, port, h2_start_wait)
+    ```
+
+    ##### attributes:
+    |variable|type|description|
+    |:---|:---|:---|
+    |status|`@property`|H2 connection status, return `None` if it is not connecting.|
+
+    ##### method:
+    * new_connect()
+        > create new H2 connection, it can automatically detect and start H2 service for MacOS/Linux.
+        * input:
+        |argument|type|description|
+        |:---|:---|:---|
+        |dbdir|`str`|quote data.|
+        |user|`str`|trade data.|
+        |password|`str`|database password.|
+        |host|`str`|database host, defult is `'localhost'`|
+        |port|`str`|database port, defult is `'5435'`|
+        |h2_start_wait|`int`|wait time to start h2 service|
+
+        ```python
+        def new_connect(self, dbdir, user, password, host='localhost', port='5435', h2_start_wait=3):
+            try:
+                self._conn = psycopg2.connect(dbname=dbdir, user=user, password=password, host=host, port=port)
+            except psycopg2.OperationalError as e:
+                if os.name == 'nt':
+                    raise ConnectionError("H2 service is not running." \
+                        " Since windows doesn't support H2 automatic start, please start h2 service manually.")
+                if self._is_h2_online():
+                    raise ConnectionError("H2 service is running, but connection is refused." \
+                        " Please double check username and password or restart h2 service manually.")
+                else:
+                    self._start_h2_service(h2_start_wait)
+                    self._conn = psycopg2.connect(dbname=dbdir, user=user, password=password, host=host, port=port)
+            finally:
+                self._cur = self._conn.cursor()
+        ```
+
+        * query()
+        > query data in H2 database by SQL.
+        ##### input:
+        |argument|type|description|
+        |:---|:---|:---|
+        |sql|`str`|SQL.|
+        |\*args||argments for execute SQL.|
+
+        ```python
+        def query(self, sql: str, *args)->pd.DataFrame:
+            self._cur.execute(sql, *args)
+            data = self._cur.fetchall()
+            data = pd.DataFrame(data)
+            return data
+        ```
+
+        ##### output:
+        |variable|type|description|
+        |:---|:---|:---|
+        |data|`pd.DataFrame`|SQL execution results.|
