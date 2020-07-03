@@ -26,8 +26,8 @@ Here is a quick start example for loading **algorithm-trading-environment**.
 
 > Connection H2 data base and query quote and trade data, and create `TickData` to store raw tick data.
 ```python
-from h2db import H2Connection
-from tickdata import TickData
+from data.h2db import H2Connection
+from data.tickdata import TickData
 
 def load(stock, dbdir, user, psw)->TickData:
     h2 = H2Connection(dbdir, user, psw)
