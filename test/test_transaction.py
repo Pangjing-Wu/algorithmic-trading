@@ -5,8 +5,9 @@ sys.path.append('./')
 
 import pandas as pd
 
-from core.transaction import transaction_matching
-from data.tickdata import TickData
+from tickdata import TickData
+from utils.transaction import transaction_matching
+
 
 def test_transaction(td, cases, reportdir):
     with open(reportdir, 'a') as f:

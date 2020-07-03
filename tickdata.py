@@ -3,7 +3,7 @@ import json
 import numpy as np
 import pandas as pd
 
-from data.h2db import H2Connection
+from utils.h2db import H2Connection
 
 
 class TickData(object):

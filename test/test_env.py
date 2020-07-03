@@ -3,7 +3,7 @@ sys.path.append('./')
 
 import pandas as pd
 
-from data.tickdata import TickData
+from tickdata import TickData
 from env import AlgorithmTrader
 
 quote = pd.read_csv('test/data/000001-quote-20140704.csv')

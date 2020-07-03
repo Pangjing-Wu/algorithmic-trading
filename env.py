@@ -1,7 +1,7 @@
 import numpy as np
 
-from data.tickdata import TickData
-from core.transaction import transaction_matching
+from tickdata import TickData
+from utils.transaction import transaction_matching
 
 # TODO improve logger function.
 
