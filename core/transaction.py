@@ -38,7 +38,7 @@ def transaction_matching(quote, trade, simulated_order)->tuple:
     # case 1, direction is 'buy' and level is 'ask', transact directly.
     if simulated_order['direction'] == 'buy':
         # if simulated_order level is 'ask'
-        if simulated_order_level[:-1] == 'ask':
+        if simulated_order_level[:3] == 'ask':
             l = 'ask1'    # iterative level.
             simulated_order['pos'] = 0  # transact directly.
             # keep buying until reach simulated_order’s level.
@@ -62,7 +62,7 @@ def transaction_matching(quote, trade, simulated_order)->tuple:
 
     # case 2, direction is 'buy' and level is 'bid', wait in trading queue.
     if simulated_order['direction'] == 'buy':
-        if simulated_order_level[:-1] == 'bid':
+        if simulated_order_level[:3] == 'bid':
             # init order position if pos is -1.
             if simulated_order['pos'] == -1:
                 simulated_order['pos'] = quote[simulated_order_level]['size']
@@ -93,7 +93,7 @@ def transaction_matching(quote, trade, simulated_order)->tuple:
 
     # case 3, direction is 'sell' and level is 'bid', transact directly.                            
     if simulated_order['direction'] == 'sell':
-        if simulated_order_level[:-1] == 'bid':
+        if simulated_order_level[:3] == 'bid':
             l = 'bid1'    # iterative level.
             simulated_order['pos'] = 0  # transact directly.
             # keep buying until reach the issued simulated_order’s level.
@@ -117,7 +117,7 @@ def transaction_matching(quote, trade, simulated_order)->tuple:
 
     # case 4, direction is 'sell' and level is 'ask', wait in trading queue.
     if simulated_order['direction'] == 'sell':
-        if simulated_order_level[:-1] == 'ask':
+        if simulated_order_level[:3] == 'ask':
             # init order position.
             if simulated_order['pos'] == -1:
                 simulated_order['pos'] = quote[simulated_order_level]['size']

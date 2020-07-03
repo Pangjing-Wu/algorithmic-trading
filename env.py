@@ -57,7 +57,7 @@ class AlgorithmTrader(object):
         self._i = 0
         self._res_volume = self._total_volume
         self._simulated_all_trade = {'price': [], 'size': []}
-        env_s = self._td.quote(self._time[0]).drop('time', axis=1)
+        env_s = self._td.get_quote(self._time[0]).drop('time', axis=1)
         env_s = env_s.values.reshape(-1)
         agt_s = [self._res_volume, 0, 0]
         s_0   = np.append(env_s, agt_s, axis=0)
@@ -99,7 +99,7 @@ class AlgorithmTrader(object):
         self._simulated_all_trade['price'] += traded['price']
         self._simulated_all_trade['size']  += traded['size']
         self._res_volume -= sum(traded['size'])
-        info += 'after matching, %s hand(s) were traded at %s and' \
+        info += 'after matching, %s hand(s) were traded at %s and ' \
                 '%s hand(s) waited to trade at %s; total.' % (
                     sum(traded['size']), sum(traded['price']),
                     order['size'], order['price']
@@ -136,8 +136,8 @@ class AlgorithmTrader(object):
         next_s = np.append(env_s, agt_s, axis=0)
         return (next_s, reward, self._final, info)
 
-    # transform function
-    # ------------------
+    # transition function
+    # -------------------
     def _action2level(self, action_level:int)->str:
         if action_level not in self.level_space:
             raise ValueError('action level cross-border.')
@@ -168,7 +168,7 @@ class AlgorithmTrader(object):
         else:
             raise KeyError('the transaction direction in action must be 0 or 1')
         level = self._action2level(action[1])
-        price = self._td.get_quote(self._time[self._i])[level]
+        price = self._td.get_quote(self._time[self._i])[level].iloc[0]
         order = {'direction':direction, 'price':price, 'size': action[2], 'pos': -1}
         return order
 
