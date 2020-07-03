@@ -217,3 +217,222 @@ order:
 traded:
 {'price': [9.97], 'size': [10000]}
 
+==========================
+2020-07-03 17:59:59.400333
+user: stevesmart
+case 0: {'direction': 'buy', 'price': 10, 'size': 10000, 'pos': -1}
+current quote board:
+       price    size
+ask10  10.06   51556
+ask9   10.05  342440
+ask8   10.04   85160
+ask7   10.03   96500
+ask6   10.02   38717
+ask5   10.01   55560
+ask4   10.00  236763
+ask3    9.99   95829
+ask2    9.98   45600
+ask1    9.97   73699
+bid1    9.96    4000
+bid2    9.95   19500
+bid3    9.94    7000
+bid4    9.93   15600
+bid5    9.92   15000
+bid6    9.91   31400
+bid7    9.90   97300
+bid8    9.89   44200
+bid9    9.88   30600
+bid10   9.87   45200
+current order:
+{'direction': 'buy', 'price': 10, 'size': 10000, 'pos': -1}
+-- EXECUTING TRANSACTION MATCHING --
+order:
+{'direction': 'buy', 'price': 10, 'size': 0, 'pos': 0}
+traded:
+{'price': [9.97], 'size': [10000]}
+
+case 1: None
+current quote board:
+       price    size
+ask10  10.06   51556
+ask9   10.05  342440
+ask8   10.04   85160
+ask7   10.03   96500
+ask6   10.02   38717
+ask5   10.01   55560
+ask4   10.00  236763
+ask3    9.99   95829
+ask2    9.98   45600
+ask1    9.97   73699
+bid1    9.96    4000
+bid2    9.95   19500
+bid3    9.94    7000
+bid4    9.93   15600
+bid5    9.92   15000
+bid6    9.91   31400
+bid7    9.90   97300
+bid8    9.89   44200
+bid9    9.88   30600
+bid10   9.87   45200
+current order:
+{'direction': 'buy', 'price': 10, 'size': 0, 'pos': 0}
+-- EXECUTING TRANSACTION MATCHING --
+order:
+{'direction': 'buy', 'price': 10, 'size': 0, 'pos': 0}
+traded:
+{'price': [], 'size': []}
+
+case 2: {'direction': 'buy', 'price': 10, 'size': 10000, 'pos': -1}
+current quote board:
+       price    size
+ask10  10.06   51556
+ask9   10.05  342440
+ask8   10.04   85160
+ask7   10.03   96500
+ask6   10.02   38717
+ask5   10.01   55560
+ask4   10.00  236763
+ask3    9.99   95829
+ask2    9.98   45600
+ask1    9.97   73699
+bid1    9.96    4000
+bid2    9.95   19500
+bid3    9.94    7000
+bid4    9.93   15600
+bid5    9.92   15000
+bid6    9.91   31400
+bid7    9.90   97300
+bid8    9.89   44200
+bid9    9.88   30600
+bid10   9.87   45200
+current order:
+{'direction': 'buy', 'price': 10, 'size': 10000, 'pos': -1}
+-- EXECUTING TRANSACTION MATCHING --
+order:
+{'direction': 'buy', 'price': 10, 'size': 0, 'pos': 0}
+traded:
+{'price': [9.97], 'size': [10000]}
+
+case 3: {'direction': 'buy', 'price': 10, 'size': 10000, 'pos': -1}
+current quote board:
+       price    size
+ask10  10.06   51556
+ask9   10.05  342440
+ask8   10.04   85160
+ask7   10.03   96500
+ask6   10.02   38717
+ask5   10.01   55560
+ask4   10.00  236763
+ask3    9.99   95829
+ask2    9.98   45600
+ask1    9.97   73699
+bid1    9.96    4000
+bid2    9.95   19500
+bid3    9.94    7000
+bid4    9.93   15600
+bid5    9.92   15000
+bid6    9.91   31400
+bid7    9.90   97300
+bid8    9.89   44200
+bid9    9.88   30600
+bid10   9.87   45200
+current order:
+{'direction': 'buy', 'price': 10, 'size': 10000, 'pos': -1}
+-- EXECUTING TRANSACTION MATCHING --
+order:
+{'direction': 'buy', 'price': 10, 'size': 0, 'pos': 0}
+traded:
+{'price': [9.97], 'size': [10000]}
+
+case 4: None
+current quote board:
+       price    size
+ask10  10.06   51556
+ask9   10.05  342440
+ask8   10.04   85160
+ask7   10.03   96500
+ask6   10.02   38717
+ask5   10.01   55560
+ask4   10.00  236763
+ask3    9.99   95829
+ask2    9.98   45600
+ask1    9.97   73699
+bid1    9.96    4000
+bid2    9.95   19500
+bid3    9.94    7000
+bid4    9.93   15600
+bid5    9.92   15000
+bid6    9.91   31400
+bid7    9.90   97300
+bid8    9.89   44200
+bid9    9.88   30600
+bid10   9.87   45200
+current order:
+{'direction': 'buy', 'price': 10, 'size': 0, 'pos': 0}
+-- EXECUTING TRANSACTION MATCHING --
+order:
+{'direction': 'buy', 'price': 10, 'size': 0, 'pos': 0}
+traded:
+{'price': [], 'size': []}
+
+case 5: None
+current quote board:
+       price    size
+ask10  10.06   51556
+ask9   10.05  342440
+ask8   10.04   85160
+ask7   10.03   96500
+ask6   10.02   38717
+ask5   10.01   55560
+ask4   10.00  236763
+ask3    9.99   95829
+ask2    9.98   45600
+ask1    9.97   73699
+bid1    9.96    4000
+bid2    9.95   19500
+bid3    9.94    7000
+bid4    9.93   15600
+bid5    9.92   15000
+bid6    9.91   31400
+bid7    9.90   97300
+bid8    9.89   44200
+bid9    9.88   30600
+bid10   9.87   45200
+current order:
+{'direction': 'buy', 'price': 10, 'size': 0, 'pos': 0}
+-- EXECUTING TRANSACTION MATCHING --
+order:
+{'direction': 'buy', 'price': 10, 'size': 0, 'pos': 0}
+traded:
+{'price': [], 'size': []}
+
+case 6: {'direction': 'buy', 'price': 10, 'size': 10000, 'pos': -1}current quote board:
+       price    size
+ask10  10.06   51556
+ask9   10.05  342440
+ask8   10.04   85160
+ask7   10.03   96500
+ask6   10.02   38717
+ask5   10.01   55560
+ask4   10.00  236763
+ask3    9.99   95829
+ask2    9.98   45600
+ask1    9.97   73699
+bid1    9.96    4000
+bid2    9.95   19500
+bid3    9.94    7000
+bid4    9.93   15600
+bid5    9.92   15000
+bid6    9.91   31400
+bid7    9.90   97300
+bid8    9.89   44200
+bid9    9.88   30600
+bid10   9.87   45200
+current order:
+{'direction': 'buy', 'price': 10, 'size': 10000, 'pos': -1}
+-- EXECUTING TRANSACTION MATCHING --
+order:
+{'direction': 'buy', 'price': 10, 'size': 0, 'pos': 0}
+traded:
+{'price': [9.97], 'size': [10000]}
+
