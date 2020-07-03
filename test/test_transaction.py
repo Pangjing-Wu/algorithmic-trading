@@ -3,9 +3,10 @@ import getpass
 import sys
 sys.path.append('./')
 
-from data import load
-from transaction import transaction_matching
+import pandas as pd
 
+from transaction import transaction_matching
+from tickdata import TickData
 
 def test_transaction(td, cases, reportdir):
     with open(reportdir, 'a') as f:
@@ -37,7 +38,9 @@ if __name__ == '__main__':
     password = 'cra001'
     reportdir = 'test/results/test_transaction.txt'
 
-    td = load(stock, dbdir, user, password)
+    quote = pd.read_csv('test/data/000001-quote-20140704.csv')
+    trade = pd.read_csv('test/data/000001-trade-20140704.csv')
+    td = TickData(quote, trade)
 
     with open('test/case/orders.txt', 'r') as f:
         cases = f.readlines()
