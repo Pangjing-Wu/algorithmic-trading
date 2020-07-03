@@ -33,7 +33,7 @@ def load(stock, dbdir, user, psw)->TickData:
     h2 = H2Connection(dbdir, user, psw)
     QUOTE_COLS = ["time", "bid1", "bsize1", "ask1", "asize1", "bid2", "bsize2", "ask2",
         "asize2", "bid3", "bsize3", "ask3", "asize3", "bid4", "bsize4", "ask4", "asize4",
-        "bid5", "bsize5","ask5", "asize5", "bid6", "bsize6", "ask6", "asize6", "bid7",
+        "bid5", "bsize5", "ask5", "asize5", "bid6", "bsize6", "ask6", "asize6", "bid7",
         "bsize7", "ask7", "asize7", "bid8", "bsize8", "ask8", "asize8", "bid9", "bsize9",
         "ask9", "asize9", "bid10", "bsize10", "ask10", "asize10"]
     TRADE_COLS = ["time", "price", "size"]
@@ -50,7 +50,7 @@ def load(stock, dbdir, user, psw)->TickData:
 
 td = load(quote, trade)
 ```
-> Build transaction environment by `TickData`.
+> Create a algorithmic trading environment based on `TickData`.
 ```python
 from env import AlgorithmTrader
 trader = AlgorithmTrader(td=td, total_volume=20000, reward_function='vwap', wait_t=0, max_level=5)
@@ -100,6 +100,10 @@ We design `AlgorithmTrader` in [env.py](evn.py) whose interface is like the famo
 
 ## Interface document
 The detailed interface document are presented in [interface](doc/interface.md).
+
+## Update
+#### 2020/7/x
+Release first version.
 
 ## Contributer
 * [Pangjing-Wu](https://github.com/Pangjing-Wu)
