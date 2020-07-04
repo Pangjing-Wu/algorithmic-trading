@@ -20,6 +20,7 @@ def test_transaction(td, cases, reportdir):
                 f.write('case %d: %s' % (i, case))
                 quote = td.get_quote(next(t))
                 trade = td.get_trade_between(quote)
+                trade = td.trade_sum(trade)
                 quote_board = td.quote_board(quote)
                 f.write('current quote board:\n%s\n' % quote_board)
                 if eval(case) != None:
