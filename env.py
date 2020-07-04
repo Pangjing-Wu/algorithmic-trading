@@ -88,6 +88,7 @@ class AlgorithmTrader(object):
         # load quote and trade.
         quote = self._td.quote_board(t)
         trade = self._td.get_trade_between(t)
+        trade = self._td.trade_sum(trade)
         # issue an order if the size of action great than 0.
         if action[-1] > 0:
             order = self._action2order(action) 
