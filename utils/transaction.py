@@ -14,6 +14,7 @@ def transaction_matching(quote, trade, simulated_order)->tuple:
     '''
 
     # TODO arguments' input form checking.
+    
     # shortcut function
     next_level = lambda level: level[:-1] + str(int(level[-1]) + 1)
     # initial variable
@@ -35,8 +36,8 @@ def transaction_matching(quote, trade, simulated_order)->tuple:
     if simulated_order['direction'] == 'buy':
         # if simulated_order level is 'ask'
         if simulated_order_level[:3] == 'ask':
-            l = 'ask1'    # iterative level.
-            simulated_order['pos'] = 0  # transact directly.
+            l = 'ask1' # iterative level.
+            simulated_order['pos'] = 0 # transact directly.
             # keep buying until reach simulated_order’s level.
             while l <= simulated_order_level:
                 # skip if quote volume is 0.
@@ -54,15 +55,15 @@ def transaction_matching(quote, trade, simulated_order)->tuple:
                     simulated_trade['size'].append(simulated_order['size'])
                     simulated_order['size'] = 0
                     break
-            return(simulated_order, simulated_trade)
+            return (simulated_order, simulated_trade)
 
     # case 2, direction is 'buy' and level is 'bid', wait in trading queue.
     if simulated_order['direction'] == 'buy':
         if simulated_order_level[:3] == 'bid':
+            # return if no order is traded at this moment.
+            if trade is None:
+                return (simulated_order, simulated_trade)
             # init order position if pos is -1.
-            #if trade=='None':
-               # simulated_order
-                #return (simulated_order, simulated_trade)
             if simulated_order['pos'] == -1:
                 simulated_order['pos'] = quote.loc[simulated_order_level]['size']
             # if there is a trade whose price is lower or equal to ours.
@@ -72,9 +73,10 @@ def transaction_matching(quote, trade, simulated_order)->tuple:
                     # until reach simulated_order’s price.
                     if price > simulated_order['price']:
                         break
+                    # TODO replace quote order by calculate actual quote size
+
                     # refresh order position.
                     simulated_order['pos'] = max(0, simulated_order['pos'] - size)
-                    #print(simulated_order['pos'])
                     # execute order if it is on the front.
                     if simulated_order['pos'] == 0:
                         # if actual trade is less than our simulated_order need.
@@ -117,6 +119,9 @@ def transaction_matching(quote, trade, simulated_order)->tuple:
     # case 4, direction is 'sell' and level is 'ask', wait in trading queue.
     if simulated_order['direction'] == 'sell':
         if simulated_order_level[:3] == 'ask':
+            # return if no order is traded at this moment.
+            if trade is None:
+                return (simulated_order, simulated_trade)
             # init order position.
             if simulated_order['pos'] == -1:
                 simulated_order['pos'] = quote.loc[simulated_order_level]['size']
@@ -128,6 +133,8 @@ def transaction_matching(quote, trade, simulated_order)->tuple:
                     # until reach simulated_order’s price.
                     if price < simulated_order['price']:
                         break
+                    # TODO replace quote order by calculate actual quote size
+                    
                     # refresh order position.
                     simulated_order['pos'] = max(0, simulated_order['pos'] - size)
                     # execute order if it is on the front.
