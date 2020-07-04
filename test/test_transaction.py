@@ -14,10 +14,10 @@ def test_transaction(td, cases, reportdir):
         f.write('==========================\n')
         f.write('%s\n' % datetime.datetime.now())
         f.write('user: %s\n' % getpass.getuser())
+        t = iter(td.quote_timeseries)
         for i, case in enumerate(cases):
             try:
                 f.write('case %d: %s' % (i, case))
-                t = iter(td.quote_timeseries)
                 quote = td.get_quote(next(t))
                 trade = td.get_trade_between(quote)
                 quote_board = td.quote_board(quote)
