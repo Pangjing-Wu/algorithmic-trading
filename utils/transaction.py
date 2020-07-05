@@ -73,17 +73,17 @@ def transaction_matching(quote, trade, simulated_order)->tuple:
                     # until reach simulated_order’s price.
                     if price > simulated_order['price']:
                         break
-                    # TODO replace quote order by calculate actual quote size
-
+                    # calculate order size available for our transaciton.
+                    available_size = max(0, size - simulated_order['pos'])
                     # refresh order position.
                     simulated_order['pos'] = max(0, simulated_order['pos'] - size)
                     # execute order if it is on the front.
                     if simulated_order['pos'] == 0:
                         # if actual trade is less than our simulated_order need.
-                        if size < simulated_order['size']:
+                        if available_size < simulated_order['size']:
                             simulated_trade['price'].append(simulated_order['price'])
-                            simulated_trade['size'].append(size)
-                            simulated_order['size'] -= size
+                            simulated_trade['size'].append(available_size)
+                            simulated_order['size'] -= available_size
                         # if actual trade is more than our simulated_order need.
                         else:
                             simulated_trade['price'].append(simulated_order['price'])
@@ -133,17 +133,17 @@ def transaction_matching(quote, trade, simulated_order)->tuple:
                     # until reach simulated_order’s price.
                     if price < simulated_order['price']:
                         break
-                    # TODO replace quote order by calculate actual quote size
-                    
+                    # calculate order size available for our transaciton.
+                    available_size = max(0, size - simulated_order['pos'])
                     # refresh order position.
                     simulated_order['pos'] = max(0, simulated_order['pos'] - size)
                     # execute order if it is on the front.
                     if simulated_order['pos'] == 0:
                         # if actual trade is less than our simulated_order need.
-                        if size < simulated_order['size']:
+                        if available_size < simulated_order['size']:
                             simulated_trade['price'].append(simulated_order['price'])
-                            simulated_trade['size'].append(size)
-                            simulated_order['size'] -= size
+                            simulated_trade['size'].append(available_size)
+                            simulated_order['size'] -= available_size
                         # if actual trade is more than our simulated_order need.
                         else:
                             simulated_trade['price'].append(simulated_order['price'])
