@@ -106,7 +106,7 @@ The detailed interface document are presented in [interface](doc/interface.md).
 #### 2020/7/x
 Release first version.
 
-## Contributer
+## Contributors
 * [Pangjing-Wu](https://github.com/Pangjing-Wu)
 * [cdanni9120](https://github.com/cdanni9120)
 
