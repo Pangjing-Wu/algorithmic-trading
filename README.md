@@ -54,7 +54,7 @@ td = load(quote, trade)
 ```python
 from env import AlgorithmicTrading
 trading = AlgorithmicTrading(td=td, total_volume=20000, reward_function='vwap', wait_t=0, max_level=5)
-trading.reset()
+s0 = trading.reset()
 action = {'direction': 'buy', 'price': 10.0, 'size': 500}
 (s_next, reward, signal, info) = trading.step(action)
 ```
