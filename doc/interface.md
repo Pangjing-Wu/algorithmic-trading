@@ -1,6 +1,6 @@
 # Interfaces document
 #### [env.py](env.py)
-* Class AlgorithmTrader
+* Class AlgorithmicTrading
     > Main class of algorithm trading environment, simulate order stransaction and provide reacting interface for agent.
 
     ##### input:
