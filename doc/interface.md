@@ -11,8 +11,9 @@
     |reward_function|`str` or `callable`|environment reward funciton.|
     |wait_t|`int`|waiting time befor executing order.|
     |max_level|`int`|max level of trading environment.|
+
     ```python
-    class AlgorithmTrader(object):
+    class AlgorithmicTrading(object):
 
     def __init__(
             self,
@@ -32,6 +33,7 @@
         self._init = False
         self._final = False
     ```
+
     ##### attributes:
     |variable|type|description|
     |:---|:---|:---|
@@ -64,7 +66,7 @@
             self._i = 0
             self._res_volume = self._total_volume
             self._simulated_all_trade = {'price': [], 'size': []}
-            env_s = self._td.quote(self._time[0]).drop('time', axis=1)
+            env_s = self._td.get_quote(self._time[0]).drop('time', axis=1)
             env_s = env_s.values.reshape(-1)
             agt_s = [self._res_volume, 0, 0]
             s_0   = np.append(env_s, agt_s, axis=0)
@@ -97,6 +99,7 @@
             # load quote and trade.
             quote = self._td.quote_board(t)
             trade = self._td.get_trade_between(t)
+            trade = self._td.trade_sum(trade)
             # issue an order if the size of action great than 0.
             if action[-1] > 0:
                 order = self._action2order(action) 
@@ -108,7 +111,7 @@
             self._simulated_all_trade['price'] += traded['price']
             self._simulated_all_trade['size']  += traded['size']
             self._res_volume -= sum(traded['size'])
-            info += 'after matching, %s hand(s) were traded at %s and' \
+            info += 'after matching, %s hand(s) were traded at %s and ' \
                     '%s hand(s) waited to trade at %s; total.' % (
                         sum(traded['size']), sum(traded['price']),
                         order['size'], order['price']
@@ -166,17 +169,13 @@
     
     ```python
     def transaction_matching(quote, trade, simulated_order)->tuple:
-
         # shortcut function
         next_level = lambda level: level[:-1] + str(int(level[-1]) + 1)
-
         # initial variable
         simulated_trade = {'price': [], 'size': []}
-
         # return blank simulated_trade if there is no order issued.
         if simulated_order['size'] <= 0:
             return (simulated_order, simulated_trade)
-
         # map price to level
         simulated_order_level = quote[quote['price'] == simulated_order['price']]
         # return blank simulated_trade if the price is not in quote.
@@ -184,15 +183,15 @@
             return (simulated_order, simulated_trade)
         else:
             simulated_order_level = simulated_order_level.index[0]
-        
+
         # main matching process
         # ---------------------
         # case 1, direction is 'buy' and level is 'ask', transact directly.
         if simulated_order['direction'] == 'buy':
             # if simulated_order level is 'ask'
-            if simulated_order_level[:-1] == 'ask':
-                l = 'ask1'    # iterative level.
-                simulated_order['pos'] = 0  # transact directly.
+            if simulated_order_level[:3] == 'ask':
+                l = 'ask1' # iterative level.
+                simulated_order['pos'] = 0 # transact directly.
                 # keep buying until reach simulated_order’s level.
                 while l <= simulated_order_level:
                     # skip if quote volume is 0.
@@ -210,42 +209,46 @@
                         simulated_trade['size'].append(simulated_order['size'])
                         simulated_order['size'] = 0
                         break
-        return(simulated_order, simulated_trade)
+                return (simulated_order, simulated_trade)
 
         # case 2, direction is 'buy' and level is 'bid', wait in trading queue.
         if simulated_order['direction'] == 'buy':
-            if simulated_order_level[:-1] == 'bid':
+            if simulated_order_level[:3] == 'bid':
+                # return if no order is traded at this moment.
+                if trade is None:
+                    return (simulated_order, simulated_trade)
                 # init order position if pos is -1.
                 if simulated_order['pos'] == -1:
-                    simulated_order['pos'] = quote[simulated_order_level]['size']
-                trade = trade[::-1] # reverse price order of trade.    
+                    simulated_order['pos'] = quote.loc[simulated_order_level]['size']
                 # if there is a trade whose price is lower or equal to ours.
                 if trade['price'][0] <= simulated_order['price']:
                     # keep buying...
                     for price, size in zip(trade['price'], trade['size']):
                         # until reach simulated_order’s price.
-                        if price < simulated_order['price']:
+                        if price > simulated_order['price']:
                             break
+                        # calculate order size available for our transaciton.
+                        available_size = max(0, size - simulated_order['pos'])
                         # refresh order position.
                         simulated_order['pos'] = max(0, simulated_order['pos'] - size)
                         # execute order if it is on the front.
                         if simulated_order['pos'] == 0:
                             # if actual trade is less than our simulated_order need.
-                            if size < simulated_order['size']:
+                            if available_size < simulated_order['size']:
                                 simulated_trade['price'].append(simulated_order['price'])
-                                simulated_trade['size'].append(size)
-                                simulated_order['size'] -= size
+                                simulated_trade['size'].append(available_size)
+                                simulated_order['size'] -= available_size
                             # if actual trade is more than our simulated_order need.
                             else:
                                 simulated_trade['price'].append(simulated_order['price'])
                                 simulated_trade['size'].append(simulated_order['size'])
                                 simulated_order['size'] = 0
                                 break
-        return (simulated_order, simulated_trade)
+                return (simulated_order, simulated_trade)
 
         # case 3, direction is 'sell' and level is 'bid', transact directly.                            
         if simulated_order['direction'] == 'sell':
-            if simulated_order_level[:-1] == 'bid':
+            if simulated_order_level[:3] == 'bid':
                 l = 'bid1'    # iterative level.
                 simulated_order['pos'] = 0  # transact directly.
                 # keep buying until reach the issued simulated_order’s level.
@@ -258,45 +261,50 @@
                         simulated_trade['price'].append(quote.loc[l, 'price'])
                         simulated_trade['size'].append(quote.loc[l, 'size'])
                         simulated_order['size'] -= quote.loc[l, 'size']
-                        i_level = next_level(i_level)
+                        l = next_level(l)
                     # if actual quote size is more than our simulated_order need.
                     else:
                         simulated_trade['price'].append(quote.loc[l, 'price'])
                         simulated_trade['size'].append(simulated_order['size'])
                         simulated_order['size'] = 0
                         break
-        return(simulated_order, simulated_trade)
+                return(simulated_order, simulated_trade)
 
         # case 4, direction is 'sell' and level is 'ask', wait in trading queue.
         if simulated_order['direction'] == 'sell':
-            if simulated_order_level[:-1] == 'ask':
+            if simulated_order_level[:3] == 'ask':
+                # return if no order is traded at this moment.
+                if trade is None:
+                    return (simulated_order, simulated_trade)
                 # init order position.
                 if simulated_order['pos'] == -1:
-                    simulated_order['pos'] = quote[simulated_order_level]['size']
+                    simulated_order['pos'] = quote.loc[simulated_order_level]['size']
                 trade = trade[::-1] # reverse price order of trade.    
                 # if there is a trade whose price is higher or equal to ours.
-                if trade['price'][0] >= simulated_order['price']:
+                if trade['price'][len(trade)-1] >= simulated_order['price']:
                     # keep selling...
                     for price, size in zip(trade['price'], trade['size']):
                         # until reach simulated_order’s price.
                         if price < simulated_order['price']:
                             break
+                        # calculate order size available for our transaciton.
+                        available_size = max(0, size - simulated_order['pos'])
                         # refresh order position.
                         simulated_order['pos'] = max(0, simulated_order['pos'] - size)
                         # execute order if it is on the front.
                         if simulated_order['pos'] == 0:
                             # if actual trade is less than our simulated_order need.
-                            if size < simulated_order['size']:
+                            if available_size < simulated_order['size']:
                                 simulated_trade['price'].append(simulated_order['price'])
-                                simulated_trade['size'].append(size)
-                                simulated_order['size'] -= size
+                                simulated_trade['size'].append(available_size)
+                                simulated_order['size'] -= available_size
                             # if actual trade is more than our simulated_order need.
                             else:
                                 simulated_trade['price'].append(simulated_order['price'])
                                 simulated_trade['size'].append(simulated_order['size'])
                                 simulated_order['size'] = 0
                                 break
-        return(simulated_order, simulated_trade)
+                return(simulated_order, simulated_trade)
     ```
 
     ##### output:
@@ -496,7 +504,7 @@
 
         ```python
         def get_trade_between(self, pre_quote:int or pd.DataFrame,
-                          post_quote:None or int or pd.DataFrame = None)->pd.DataFrame:
+                              post_quote:None or int or pd.DataFrame = None)->pd.DataFrame:
             if type(pre_quote) == int:
                 pass
             elif type(pre_quote) == pd.DataFrame:

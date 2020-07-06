@@ -52,19 +52,20 @@ td = load(quote, trade)
 ```
 > Create a algorithmic trading environment based on `TickData`.
 ```python
-from env import AlgorithmTrader
-trader = AlgorithmTrader(td=td, total_volume=20000, reward_function='vwap', wait_t=0, max_level=5)
-trader.reset()
+from env import AlgorithmicTrading
+trading = AlgorithmicTrading(td=td, total_volume=20000, reward_function='vwap', wait_t=0, max_level=5)
+trading.reset()
 action = {'direction': 'buy', 'price': 10.0, 'size': 500}
-(s_next, reward, signal, info) = trader.step(action)
+(s_next, reward, signal, info) = trading.step(action)
 ```
 
 ## Contents
 
-* [env.py](env.py) is main file of **algorithm-trading-environment**, provides reacting trading environment interface for agent.
-* [transaction.py](transaction.py) is transaction matching module to executing simulated order by matching it with actual quote and trade data.
+* [env.py](env.py) is main file of **algorithm-trading-environment**, provides algorithmic trading environment interface for agent.
 * [tickdata.py](tickdata.py) creates a class for tick-level data, which provides abundant function for query and processing quote or trade records.
-* [h2db.py](h2db.py) is h2 database connection and query module.
+* [utils](./utils) contains some functions to support algorithmic trading.
+    * [transaction.py](transaction.py) is transaction matching module to executing simulated order by matching it with actual quote and trade data.
+    * [h2db.py](h2db.py) is h2 database connection and query module.
 
 Besides, [tutorial](./tutorial) contains some examples of guiding to use the envronment, [test](./test) contains test configuration and test cases, [config](./config) defines some constant and variable that not changes often.
 
