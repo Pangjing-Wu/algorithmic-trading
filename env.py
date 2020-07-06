@@ -5,7 +5,7 @@ from utils.transaction import transaction_matching
 
 # TODO improve logger function.
 
-class AlgorithmTrader(object):
+class AlgorithmicTrading(object):
 
     def __init__(
             self,
