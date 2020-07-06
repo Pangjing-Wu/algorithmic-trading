@@ -63,7 +63,7 @@ action = {'direction': 'buy', 'price': 10.0, 'size': 500}
 
 * [env.py](env.py) is main file of **algorithm-trading-environment**, provides algorithmic trading environment interface for agent.
 * [tickdata.py](tickdata.py) creates a class for tick-level data, which provides abundant function for query and processing quote or trade records.
-* [utils](./utils) contains some functions to support algorithmic trading.
+* [utils/](./utils) contains some functions to support algorithmic trading.
     * [transaction.py](transaction.py) is transaction matching module to executing simulated order by matching it with actual quote and trade data.
     * [h2db.py](h2db.py) is h2 database connection and query module.
 
