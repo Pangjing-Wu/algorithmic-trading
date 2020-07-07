@@ -1,7 +1,7 @@
 import numpy as np
 
 from tickdata import TickData
-from utils.transaction import transaction_matching
+
 
 # TODO improve logger function.
 
@@ -10,14 +10,14 @@ class AlgorithmicTrading(object):
     def __init__(
             self,
             td: TickData,
+            exchange: callable,
             total_volume: int,
             reward_function: callable or str,
-            wait_t=0,
             max_level=5
     ):
         self._td = td
+        self._exchange = exchange
         self._total_volume = total_volume
-        self._wait_t = wait_t # TODO add wait_t mechanism
         self._level_space = list(range(max_level * 2))
         self._level_space_n = len(self._level_space)
         self._reward_function = reward_function
@@ -96,7 +96,7 @@ class AlgorithmicTrading(object):
         else:
             info += 'execute remaining order; '
         # transaction matching
-        order, traded = transaction_matching(quote, trade, order)
+        order, traded = self._exchange(quote, trade, order)
         self._simulated_all_trade['price'] += traded['price']
         self._simulated_all_trade['size']  += traded['size']
         self._res_volume -= sum(traded['size'])

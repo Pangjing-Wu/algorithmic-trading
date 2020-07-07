@@ -436,3 +436,194 @@ order:
 traded:
 {'price': [9.97], 'size': [10000]}
 
+==========================
+2020-07-07 19:16:39.371618
+user: stevesmart
+case 0: {'direction': 'buy', 'price': 10, 'size': 10000, 'pos': -1}
+current quote board:
+       price    size
+ask10  10.06   51556
+ask9   10.05  342440
+ask8   10.04   85160
+ask7   10.03   96500
+ask6   10.02   38717
+ask5   10.01   55560
+ask4   10.00  236763
+ask3    9.99   95829
+ask2    9.98   45600
+ask1    9.97   73699
+bid1    9.96    4000
+bid2    9.95   19500
+bid3    9.94    7000
+bid4    9.93   15600
+bid5    9.92   15000
+bid6    9.91   31400
+bid7    9.90   97300
+bid8    9.89   44200
+bid9    9.88   30600
+bid10   9.87   45200
+current order:
+{'direction': 'buy', 'price': 10, 'size': 10000, 'pos': -1}
+[ERRO]: an exception occurs:'side'
+
+case 1: None
+current quote board:
+       price    size
+ask10  10.06   54256
+ask9   10.05  347890
+ask8   10.04   93460
+ask7   10.03   96800
+ask6   10.02   40217
+ask5   10.01   62560
+ask4   10.00  153463
+ask3    9.99  186779
+ask2    9.98   96420
+ask1    9.97   44209
+bid1    9.95  110800
+bid2    9.94    7000
+bid3    9.93   24300
+bid4    9.92  120900
+bid5    9.91   57700
+bid6    9.90  109700
+bid7    9.89   48200
+bid8    9.88   36100
+bid9    9.87   49600
+bid10   9.86   38200
+current order:
+{'direction': 'buy', 'price': 10, 'size': 10000, 'pos': -1}
+[ERRO]: an exception occurs:'side'
+
+case 2: {'direction': 'buy', 'price': 10, 'size': 10000, 'pos': -1}
+current quote board:
+       price    size
+ask10  10.06   54256
+ask9   10.05  347890
+ask8   10.04   93460
+ask7   10.03   96800
+ask6   10.02   38217
+ask5   10.01   62560
+ask4   10.00  153463
+ask3    9.99  186779
+ask2    9.98   96420
+ask1    9.97   35209
+bid1    9.95  110800
+bid2    9.94    7000
+bid3    9.93   24300
+bid4    9.92  120900
+bid5    9.91   57700
+bid6    9.90  109700
+bid7    9.89   48200
+bid8    9.88   36100
+bid9    9.87   49600
+bid10   9.86   38200
+current order:
+{'direction': 'buy', 'price': 10, 'size': 10000, 'pos': -1}
+[ERRO]: an exception occurs:argument type of trade must be pandas.DataFrame.
+
+case 3: {'direction': 'buy', 'price': 10, 'size': 10000, 'pos': -1}
+current quote board:
+       price    size
+ask10  10.06   54256
+ask9   10.05  347890
+ask8   10.04   93460
+ask7   10.03   96800
+ask6   10.02   38217
+ask5   10.01   62560
+ask4   10.00  153463
+ask3    9.99  189779
+ask2    9.98   96420
+ask1    9.97   35509
+bid1    9.95  110800
+bid2    9.94    7000
+bid3    9.93   24300
+bid4    9.92  120900
+bid5    9.91   57700
+bid6    9.90  109700
+bid7    9.89   48200
+bid8    9.88   36100
+bid9    9.87   49700
+bid10   9.86   38200
+current order:
+{'direction': 'buy', 'price': 10, 'size': 10000, 'pos': -1}
+[ERRO]: an exception occurs:'side'
+
+case 4: None
+current quote board:
+       price    size
+ask10  10.05  347890
+ask9   10.04   93460
+ask8   10.03   96800
+ask7   10.02   38217
+ask6   10.01   63560
+ask5   10.00  153463
+ask4    9.99  189779
+ask3    9.98   96420
+ask2    9.97   35409
+ask1    9.96    1500
+bid1    9.95  110800
+bid2    9.94    7000
+bid3    9.93   29300
+bid4    9.92  120900
+bid5    9.91   57700
+bid6    9.90  109700
+bid7    9.89   48200
+bid8    9.88   36100
+bid9    9.87   49700
+bid10   9.86   38200
+current order:
+{'direction': 'buy', 'price': 10, 'size': 10000, 'pos': -1}
+[ERRO]: an exception occurs:argument type of trade must be pandas.DataFrame.
+
+case 5: None
+current quote board:
+       price    size
+ask10  10.05  347890
+ask9   10.04   93460
+ask8   10.03   96800
+ask7   10.02   38217
+ask6   10.01   66560
+ask5   10.00  153463
+ask4    9.99  189779
+ask3    9.98   96020
+ask2    9.97   35409
+ask1    9.96    3900
+bid1    9.95  110100
+bid2    9.94    7000
+bid3    9.93   29300
+bid4    9.92  120900
+bid5    9.91   57700
+bid6    9.90  110200
+bid7    9.89   48200
+bid8    9.88   36600
+bid9    9.87   49700
+bid10   9.86   38200
+current order:
+{'direction': 'buy', 'price': 10, 'size': 10000, 'pos': -1}
+[ERRO]: an exception occurs:'side'
+
+case 6: {'direction': 'buy', 'price': 10, 'size': 10000, 'pos': -1}current quote board:
+       price    size
+ask10  10.05  347890
+ask9   10.04   93460
+ask8   10.03   96800
+ask7   10.02   38217
+ask6   10.01   67760
+ask5   10.00  153463
+ask4    9.99  189779
+ask3    9.98   96020
+ask2    9.97   40809
+ask1    9.96   28400
+bid1    9.95  110100
+bid2    9.94    7000
+bid3    9.93   25300
+bid4    9.92  120900
+bid5    9.91   57700
+bid6    9.90  110200
+bid7    9.89   48200
+bid8    9.88   36600
+bid9    9.87   49700
+bid10   9.86   38200
+current order:
+{'direction': 'buy', 'price': 10, 'size': 10000, 'pos': -1}
+[ERRO]: an exception occurs:'side'
+
