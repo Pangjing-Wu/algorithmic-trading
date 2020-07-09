@@ -48,7 +48,7 @@ def load(stock, dbdir, user, psw)->TickData:
         raise ConnectionError("cannot connect to H2 service, please strat H2 service first.")
     return TickData(quote, trade)
 
-td = load(quote, trade)
+td = load('000001', 'your_db_dir', 'user', 'password')
 ```
 > Create a algorithmic trading environment based on `TickData`.
 ```python
