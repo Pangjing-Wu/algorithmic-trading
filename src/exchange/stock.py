@@ -1,3 +1,5 @@
+import numpy as np
+
 class GeneralExchange(object):
 
     def __init__(self, tickdata):
@@ -164,10 +166,10 @@ class GeneralExchange(object):
                         "exchange cannot handle this order.")
 
     def _query_data(self, time):
-        if time not in self._data.quotetimeseries:
+        if time not in self._data.quote_timeseries:
             raise KeyError("order's time not in range, "\
                            "cannot find corresponding data.")
-        quote = self._data.get_quote(time)
+        quote = self._data.quote_board(time)
         trade = self._data.get_trade_between(time)
         trade = self._data.trade_sum(trade)
         return quote, trade
@@ -178,12 +180,13 @@ class GeneralExchange(object):
         if order['side'] not in ['buy', 'sell']:
             raise KeyError("argument value of order['side'] "\
                            "must be 'buy' or 'sell'.")
-        if type(order['time']) != int:
+        if type(order['time']) not in [int, np.int32, np.int64]:
             raise TypeError("argument type of order['time'] must be int.")
-        if type(order['price']) not in [int, float]:
+        if type(order['price']) not in [int, np.int32, np.int64, 
+                                        float, np.float32, np.float64]:
             raise TypeError("argument type of order['price'] "\
                             "must be int or float.")
-        if type(order['size']) != int:
+        if type(order['size']) not in [int, np.int32, np.int64]:
             raise TypeError("argument type of order['size'] must be int.")
-        if type(order['pos']) != int:
+        if type(order['pos']) not in [int, np.int32, np.int64]:
             raise TypeError("argument type of order['pos'] must be int.")

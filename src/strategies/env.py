@@ -75,7 +75,7 @@ class AlgorithmicTradingEnv(object):
         argument:
         ---------
         action: list, tuple, or array like,
-                forms as [direction, level, size], where
+                forms as [side, level, size], where
                 dirction: int, 0=buy, 1=sell.
         returns:
         --------
@@ -91,20 +91,16 @@ class AlgorithmicTradingEnv(object):
         if self._final == True:
             raise EnvTerminatedError
         # get current timestamp.
-        t = self._data.quote_timeseries[self._i]
+        t = self._time[self._i]
         info = 'At %s ms, ' % t
-        # load quote and trade.
-        quote = self._data.quote_board(t)
-        trade = self._data.get_trade_between(t)
-        trade = self._data.trade_sum(trade)
-        # issue an order if the size of action great than 0.
+        # issue an new order if the size of action great than 0.
         if action[-1] > 0:
             order = self._action2order(action) 
             info += 'issue an order %s; ' % order
         else:
             info += 'execute remaining order; '
         # transaction matching
-        order, traded = self._transaction_engine(quote, trade, order)
+        order, traded = self._transaction_engine(order)
         self._simulated_all_trade['price'] += traded['price']
         self._simulated_all_trade['size']  += traded['size']
         self._res_volume -= sum(traded['size'])
@@ -147,39 +143,33 @@ class AlgorithmicTradingEnv(object):
 
     # transition function
     # -------------------
-    def _action2level(self, action_level:int)->str:
-        if action_level not in self.level_space:
-            raise ValueError('action level cross-border.')
+    def _action2level(self, action_level:int) -> str:
         max_level = int(self._level_space_n / 2)
         if action_level < max_level:
             level = 'bid' + str(max_level - action_level)
-            return level
         else:
             level = 'ask' + str(action_level - max_level + 1)
-            return level
+        return level
 
-    def _action2order(self, action)->dict:
+    def _action2order(self, action) -> dict:
         '''
         argument:
         ---------
         action: list, tuple, or array like,
-                forms as [direction, level, size], where
+                forms as [side, level, size], where
                 dirction: int, 0=buy, 1=sell.
         return:
         -------
         order: dict, keys are formed by
-               ('direction', 'price', 'size', 'pos').
+               ('side', 'price', 'size', 'pos').
         '''
 
-        if action[0] == 0:
-            direction = 'buy'
-        elif action[0] == 1:
-            direction = 'sell'
-        else:
-            raise KeyError('the transaction direction in action must be 0 or 1')
+        side = 'buy' if action[0] == 0 else 'sell'
+        time  = self._time[self._i]
         level = self._action2level(action[1])
-        price = self._data.get_quote(self._time[self._i])[level].iloc[0]
-        order = {'direction':direction, 'price':price, 'size': action[2], 'pos': -1}
+        price = self._data.get_quote(time)[level].iloc[0]
+        order = {'time': time, 'side': side, 'price': price,
+                 'size': action[2], 'pos': -1}
         return order
 
     # reward function
@@ -192,6 +182,23 @@ class AlgorithmicTradingEnv(object):
     def _twap(self, trade):
         pass
 
+    # arugument check
+    # ---------------
+    def _action_check(self, action):
+        if type(action) not in [tuple, list, np.array]:
+            raise KeyError("action type should be tuple, list, "\
+                           " or numpy.array.")
+        if len(action) != 3:
+            raise KeyError("action should contain 3 elements, "\
+                           "but got %d." % len(action))
+        if (action[0]) not in [0, 1]:
+            raise KeyError("transaction side of action must be 0 or 1.")
+        if type(action[1]) not in [int, np.int32, np.int64]:
+            raise TypeError("transaction level type of action must be int.")
+        if action[1] < 0 or action[1] >= self.level_space_n:
+            raise ValueError('action level cross-border.')
+        if type(action[2]) not in [int, np.int32, np.int64]:
+            raise TypeError("transaction size type of action must be int.")
 
 class EnvError(Exception):
 
