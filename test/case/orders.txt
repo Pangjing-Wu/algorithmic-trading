@@ -1,7 +1,0 @@
-{'direction': 'buy', 'price': 10, 'size': 10000, 'pos': -1}
-None
-{'direction': 'buy', 'price': 10, 'size': 10000, 'pos': -1}
-{'direction': 'buy', 'price': 10, 'size': 10000, 'pos': -1}
-None
-None
-{'direction': 'buy', 'price': 10, 'size': 10000, 'pos': -1}
