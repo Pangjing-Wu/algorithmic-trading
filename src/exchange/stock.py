@@ -160,9 +160,13 @@ class GeneralExchange(object):
             return(order, filled)
 
         # raise exception if order is not in previous 4 conditions.
-        raise Exception('An unknown error occured, exchange cannot handle this order.')
+        raise Exception("An unknown error occured, " \
+                        "exchange cannot handle this order.")
 
     def _query_data(self, time):
+        if time not in self._data.quotetimeseries:
+            raise KeyError("order's time not in range, "\
+                           "cannot find corresponding data.")
         quote = self._data.get_quote(time)
         trade = self._data.get_trade_between(time)
         trade = self._data.trade_sum(trade)
@@ -172,11 +176,13 @@ class GeneralExchange(object):
         if type(order) != dict:
             raise TypeError("argument type of order must be dict.")
         if order['side'] not in ['buy', 'sell']:
-            raise KeyError("argument value of order['side'] must be 'buy' or 'sell'.")
+            raise KeyError("argument value of order['side'] "\
+                           "must be 'buy' or 'sell'.")
         if type(order['time']) != int:
             raise TypeError("argument type of order['time'] must be int.")
         if type(order['price']) not in [int, float]:
-            raise TypeError("argument type of order['price'] must be int or float.")
+            raise TypeError("argument type of order['price'] "\
+                            "must be int or float.")
         if type(order['size']) != int:
             raise TypeError("argument type of order['size'] must be int.")
         if type(order['pos']) != int:
