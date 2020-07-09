@@ -1,31 +1,47 @@
+import datetime
 import sys
-sys.path.append('./')
+import traceback
+sys.path.append('.')
+sys.path.append('./test')
 
 from src.datasource.datatype import TickData
 from src.exchange.stock import GeneralExchange
 from src.strategies.env import AlgorithmicTradingEnv
-from test.utils.dataloader import load_csv, load_case
+from utils.dataloader import load_tickdata, load_case
 
 
-quote, trade = load_csv(stock='000001', time='20140704')
-data = TickData(quote, trade)
+def test_env_step(env, params, reportdir):
+    with open(reportdir, 'a') as f:
+        f.write('==========================\n')
+        f.write('%s\n' % datetime.datetime.now())
+        try:
+            _ = env.reset()
+            for p in params:
+                param = p['action']
+                f.write('param : %s\n' %  param)
+                next_s, reward, final, info = env.step(param)
+                f.write('-- OUTPUT --\n')
+                f.write('next state: %s\n' % next_s)
+                f.write('reward: %s\n' % reward)
+                f.write('environment terminated signal: %s\n' % final)
+                f.write('transaction infomation:\n%s\n' % info)
+        except Exception:
+            f.write('[ERRO]: an exception occurs:\n%s\n' % traceback.format_exc())
 
-exchange = GeneralExchange(data)
 
-env = AlgorithmicTradingEnv(
-    tickdata=data,
-    transaction_engine=exchange.transaction_engine,
-    total_volume=100000,
-    reward_function='vwap',
-    max_level=10
-    )
+if __name__ == '__main__':
+    quote, trade = load_tickdata(stock='000001', time='20140704')
+    data = TickData(quote, trade)
+    exchange = GeneralExchange(data)
+    env = AlgorithmicTradingEnv(
+        tickdata=data,
+        transaction_engine=exchange.transaction_engine,
+        total_volume=100000,
+        reward_function='vwap',
+        max_level=10
+        )
 
-s0 = env.reset()
-a = (1, 0, 100)
-env.step(a)
-env.step(a)
-next_s, r, signal, info = env.step(a)
-print(next_s)
-print(r)
-print(signal)
-print(info)
+    _, params = load_case('actions.txt')
+
+    reportdir = 'test/results/manual_test_env.txt'
+    test_env_step(env, params, reportdir)
