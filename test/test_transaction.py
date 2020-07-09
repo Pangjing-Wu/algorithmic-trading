@@ -6,7 +6,7 @@ sys.path.append('./')
 import pandas as pd
 
 from src.datasource import TickData
-from src.exchange.stock import transaction_matching
+from src.exchange.stock import transaction_engine
 
 
 def test_transaction(td, cases, reportdir):
@@ -26,7 +26,7 @@ def test_transaction(td, cases, reportdir):
                 if eval(case) != None:
                     order = eval(case)
                 f.write('current order:\n%s\n' % order)
-                order, traded = transaction_matching(quote_board, trade, order)
+                order, traded = transaction_engine(quote_board, trade, order)
                 f.write('-- EXECUTING TRANSACTION MATCHING --\n')
                 f.write('order:\n%s\ntraded:\n%s\n\n' % (order, traded))
             except Exception as e:
