@@ -1,7 +1,7 @@
 import datetime
 import sys
 import traceback
-sys.path.append('.')
+sys.path.append('./')
 sys.path.append('./test')
 
 from src.datasource.datatype import TickData
@@ -17,9 +17,10 @@ def test_env_step(env, params, reportdir):
         try:
             _ = env.reset()
             for p in params:
-                param = p['action']
-                f.write('param : %s\n' %  param)
-                next_s, reward, final, info = env.step(param)
+                # p[0] is params, p[1] is excepted.
+                action = p[0]['action']
+                f.write('param : %s\n' %  action)
+                next_s, reward, final, info = env.step(action)
                 f.write('-- OUTPUT --\n')
                 f.write('next state: %s\n' % next_s)
                 f.write('reward: %s\n' % reward)

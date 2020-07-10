@@ -1,7 +1,7 @@
 import datetime
 import sys
 import traceback
-sys.path.append('.')
+sys.path.append('./')
 sys.path.append('./test')
 
 from src.datasource.datatype import TickData
@@ -14,12 +14,13 @@ def test_transaction(transaction_engine, params, reportdir):
         f.write('%s\n' % datetime.datetime.now())
         for p in params:
             try:
-                param = p['order']
-                f.write('param : %s\n' %  param)
+                # p[0] is params, p[1] is excepted.
+                order = p[0]['order']
+                f.write('param : %s\n' %  order)
                 quote_board = data.quote_board(quote)
                 f.write('current quote board:\n%s\n' % quote_board)
-                f.write('current order:\n%s\n' % param)
-                order, traded = transaction_engine(param)
+                f.write('current order:\n%s\n' % order)
+                order, traded = transaction_engine(order)
                 f.write('-- OUTPUT --\n')
                 f.write('order:\n%s\ntraded:\n%s\n\n' % (order, traded))
             except Exception:
