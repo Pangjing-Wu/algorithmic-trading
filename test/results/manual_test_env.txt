@@ -1,0 +1,44 @@
+==========================
+2020-07-10 16:21:20.836435
+param : [1, 5, 100]
+[ERRO]: an exception occurs:
+Traceback (most recent call last):
+  File "/Users/stevesmart/OneDrive/python-programs/reinforcement-learning/algorithmic-trading/test/manual/manual_test_env.py", line 23, in test_env_step
+    next_s, reward, final, info = env.step(action)
+  File "./src/strategies/env.py", line 150, in step
+    next_s = np.append(env_s, agt_s, axis=0)
+  File "<__array_function__ internals>", line 6, in append
+  File "/Applications/anaconda3/lib/python3.7/site-packages/numpy/lib/function_base.py", line 4693, in append
+    return concatenate((arr, values), axis=axis)
+  File "<__array_function__ internals>", line 6, in concatenate
+ValueError: all the input arrays must have same number of dimensions, but the array at index 0 has 1 dimension(s) and the array at index 1 has 0 dimension(s)
+
+==========================
+2020-07-10 16:22:27.933507
+param : [1, 5, 100]
+-- OUTPUT --
+next state: [9.95000e+00, 1.10800e+05, 9.97000e+00, 4.42090e+04, 9.94000e+00, 7.00000e+03,
+ 9.98000e+00, 9.64200e+04, 9.93000e+00, 2.43000e+04, 9.99000e+00, 1.86779e+05,
+ 9.92000e+00, 1.20900e+05, 1.00000e+01, 1.53463e+05, 9.91000e+00, 5.77000e+04,
+ 1.00100e+01, 6.25600e+04, 9.90000e+00, 1.09700e+05, 1.00200e+01, 4.02170e+04,
+ 9.89000e+00, 4.82000e+04, 1.00300e+01, 9.68000e+04, 9.88000e+00, 3.61000e+04,
+ 1.00400e+01, 9.34600e+04, 9.87000e+00, 4.96000e+04, 1.00500e+01, 3.47890e+05,
+ 9.86000e+00, 3.82000e+04, 1.00600e+01, 5.42560e+04, 9.99000e+04]
+reward: 0.0
+environment terminated signal: False
+transaction infomation:
+At 34200000 ms, issue an order {'time': 34200000, 'side': 'sell', 'price': 9.92, 'size': 100, 'pos': -1}; after matching, 100 hand(s) were traded at 9.96 and 0 hand(s) waited to trade at 9.92; total.==========================
+2020-07-10 17:31:13.855809
+param : [1, 5, 100]
+-- OUTPUT --
+next state: [9.95000e+00 1.10800e+05 9.97000e+00 4.42090e+04 9.94000e+00 7.00000e+03
+ 9.98000e+00 9.64200e+04 9.93000e+00 2.43000e+04 9.99000e+00 1.86779e+05
+ 9.92000e+00 1.20900e+05 1.00000e+01 1.53463e+05 9.91000e+00 5.77000e+04
+ 1.00100e+01 6.25600e+04 9.90000e+00 1.09700e+05 1.00200e+01 4.02170e+04
+ 9.89000e+00 4.82000e+04 1.00300e+01 9.68000e+04 9.88000e+00 3.61000e+04
+ 1.00400e+01 9.34600e+04 9.87000e+00 4.96000e+04 1.00500e+01 3.47890e+05
+ 9.86000e+00 3.82000e+04 1.00600e+01 5.42560e+04 9.99000e+04]
+reward: 0.0
+environment terminated signal: False
+transaction infomation:
+At 34200000 ms, issue an order {'time': 34200000, 'side': 'sell', 'price': 9.92, 'size': 100, 'pos': -1}; after matching, 100 hand(s) were traded at 9.96 and 0 hand(s) waited to trade at 9.92; total.
