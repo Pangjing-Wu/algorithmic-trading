@@ -63,6 +63,7 @@ class AlgorithmicTradingEnv(object):
         self._final = False
         self._i = 0
         self._res_volume = self._total_volume
+        self._order = {'time': 0, 'side': 0, 'price': 0, 'size': 0, 'pos': -1}
         self._simulated_all_trade = {'price': [], 'size': []}
         env_s = self._data.get_quote(self._time[0]).drop('time', axis=1)
         env_s = env_s.values.reshape(-1)
@@ -81,7 +82,7 @@ class AlgorithmicTradingEnv(object):
         --------
         next_s: np.array, next state of environment and agent.
         reward: float, environment rewards.
-        signal: bool, final signal.
+        final: bool, final signal.
         info: str, detailed transaction information of simulated orders.
         '''
     
@@ -95,22 +96,29 @@ class AlgorithmicTradingEnv(object):
         info = 'At %s ms, ' % t
         # issue an new order if the size of action great than 0.
         if action[-1] > 0:
-            order = self._action2order(action) 
-            info += 'issue an order %s; ' % order
+            self._order = self._create_new_order(action) 
+            info += 'issue an order %s; ' % self._order
+        # else execute remaining order.
         else:
-            info += 'execute remaining order; '
-        # transaction matching
-        order, traded = self._transaction_engine(order)
-        self._simulated_all_trade['price'] += traded['price']
-        self._simulated_all_trade['size']  += traded['size']
-        self._res_volume -= sum(traded['size'])
-        info += 'after matching, %s hand(s) were traded at %s and ' \
-                '%s hand(s) waited to trade at %s; total.' % (
-                    sum(traded['size']), sum(traded['price']),
-                    order['size'], order['price']
-                )
+            # update order's timestamp if there is a order remaining.
+            if self._order['size'] > 0:
+                self._order['time'] = t
+                info += 'execute remaining order; '
+            else:
+                info += 'no order issued.'
+        # transaction matching by transaction engine.
+        if self._order['size'] > 0:
+            self._order, traded = self._transaction_engine(self._order)
+            self._simulated_all_trade['price'] += traded['price']
+            self._simulated_all_trade['size']  += traded['size']
+            self._res_volume -= sum(traded['size'])
+            info += 'after matching, %s hand(s) were traded at %s and ' \
+                    '%s hand(s) waited to trade at %s; total.' % (
+                        sum(traded['size']), sum(traded['price']),
+                        self._order['size'], self._order['price']
+                    )
         # give a final signal
-        if t == self._data.quote_timeseries[-2]:
+        if t == self._time[-2]:
             self._final = True
         elif self._res_volume == 0:
             self._final = True
@@ -136,8 +144,9 @@ class AlgorithmicTradingEnv(object):
         else:
             reward = 0.
         # go to next step.
+        self._i += 1
         env_s = self._data.next_quote(t).drop('time', axis=1).values.reshape(-1)
-        agt_s = [self._res_volume] + traded['price'] + traded['size']
+        agt_s = [self._res_volume]
         next_s = np.append(env_s, agt_s, axis=0)
         return (next_s, reward, self._final, info)
 
@@ -151,7 +160,7 @@ class AlgorithmicTradingEnv(object):
             level = 'ask' + str(action_level - max_level + 1)
         return level
 
-    def _action2order(self, action) -> dict:
+    def _create_new_order(self, action) -> dict:
         '''
         argument:
         ---------
