@@ -53,36 +53,32 @@ class H2Connection(object):
         status = True if len(output) else False
         return status
 
-    # NOTE @wupj _start_h2_service() is only available when running code in terminal.
-    # NOTE @wupj H2 start process is paralleled, sleep 3 secs to wait it completely start.
+    
     def _start_h2_service(self, h2_start_wait):
+
+        # NOTE H2 start process is paralleled, sleep a few seconds to wait for starting.
+        
         print("[INFO] try to start H2 service automatically by execute 'h2' in shell.")
-        # NOTE @wupj use subprocess.getstatusoutput('h2 &') will suspend this program, since it need complete output. 
+        # NOTE use subprocess.getstatusoutput('h2 &') will suspend this program,
+        # since it need wait the command terminated. 
         ret = subprocess.check_call('h2 &', shell=True)
         time.sleep(h2_start_wait)
-        # start success.
+
+        # start successfully.
         if ret == 0:
             print('[INFO] start H2 service sucessfully.')
-        # start failure, try to start manually.
         else:
-            # allow five times to try to start mannully.
-            for i in range(5):
-                # specify H2 direction or quit.
-                h2dir = input("Fail to start H2, please specify h2*.jar direction or input 'q!' to quit:")
-                if h2dir != 'q!':
-                    ret = subprocess.check_call('java -cp %s org.h2.tools.Server' % h2dir, shell=True)
-                    time.sleep(h2_start_wait)
-                else:
-                    raise KeyboardInterrupt("exit by user input 'q!'.")
-                # mannual start successfully, break for loop.
-                if ret == 0:
-                    subprocess.call('echo "java -cp %s org.h2.tools.Server" > /usr/local/bin/h2' % h2dir, shell=True)
-                    print('[INFO] start H2 service sucessfully.')
-                    break
-                else:
-                    print("[WARN] Fail to start H2, you still have %d times to try." % (4-i))
-            # mannual start failed.
-            raise ConnectionError('Cannot start H2 service, exit program.')
+            # try to start h2 mannully.
+            h2dir = input("Fail to start H2, please specify h2*.jar direction:")
+            ret = subprocess.check_call('java -cp %s org.h2.tools.Server' % h2dir, shell=True)
+            time.sleep(h2_start_wait)
+
+            # mannual start h2 service successfully.
+            if ret == 0:
+                subprocess.call('echo "java -cp %s org.h2.tools.Server" > /usr/local/bin/h2' % h2dir, shell=True)
+                print('[INFO] start H2 service sucessfully.')
+            else:
+                raise ConnectionError('Cannot start H2 service.')
 
 
 def load(stock, dbdir, user, psw):
@@ -100,6 +96,7 @@ def load(stock, dbdir, user, psw):
     '''
     
     h2 = H2Connection(dbdir, user, psw)
+
     QUOTE_COLS = ["time", "bid1", "bsize1", "ask1", "asize1", "bid2", "bsize2", "ask2",
         "asize2", "bid3", "bsize3", "ask3", "asize3", "bid4", "bsize4", "ask4", "asize4",
         "bid5", "bsize5", "ask5", "asize5", "bid6", "bsize6", "ask6", "asize6", "bid7",
@@ -107,6 +104,7 @@ def load(stock, dbdir, user, psw):
         "ask9", "asize9", "bid10", "bsize10", "ask10", "asize10"]
     TRADE_COLS = ["time", "price", "size"]
     TIMES = [34200000, 41400000, 46800000, 54000000]
+
     if h2.status:
         sql = "select %s from %s where time between %s and %s or time between %s and %s"
         quote = h2.query(sql % (','.join(QUOTE_COLS), 'quote_' + stock, *TIMES))
