@@ -52,16 +52,14 @@ class GeneralExchange(object):
             order['pos'] = 0 # transact directly.
             # keep buying until reach order’s level.
             while l <= order_level:
-                # skip if quote volume is 0.
                 if quote.loc[l, 'size'] <= 0:
+                    l = next_level(l)
                     continue
-                # if actual quote size is less than our order need.
                 if quote.loc[l, 'size'] < order['size']:
                     filled['price'].append(quote.loc[l, 'price'])
                     filled['size'].append(quote.loc[l, 'size'])
                     order['size'] -= quote.loc[l, 'size']
                     l = next_level(l)
-                # if actual quote size is more than our order need.
                 else:
                     filled['price'].append(quote.loc[l, 'price'])
                     filled['size'].append(order['size'])
@@ -72,7 +70,7 @@ class GeneralExchange(object):
         # case 2, side is 'buy' and level is 'bid', wait in trading queue.
         if order['side'] == 'buy' and order_level[:3] == 'bid':
             # return if no order is traded at this moment.
-            if trade is None:
+            if trade.empty:
                 return (order, filled)
             # init order position if pos is -1.
             if order['pos'] == -1:
@@ -84,18 +82,13 @@ class GeneralExchange(object):
                     # until reach order’s price.
                     if price > order['price']:
                         break
-                    # calculate available quantity.
                     available_size = max(0, size - order['pos'])
-                    # refresh order position.
                     order['pos'] = max(0, order['pos'] - size)
-                    # execute order if it is on the front.
                     if order['pos'] == 0:
-                        # if actual trade is less than our order need.
                         if available_size < order['size']:
                             filled['price'].append(order['price'])
                             filled['size'].append(available_size)
                             order['size'] -= available_size
-                        # if actual trade is more than our order need.
                         else:
                             filled['price'].append(order['price'])
                             filled['size'].append(order['size'])
@@ -111,14 +104,13 @@ class GeneralExchange(object):
             while l <= order_level:
                 # continue if quote size is 0.
                 if quote.loc[l, 'size'] <= 0:
+                    l = next_level(l)
                     continue
-                # if actual quote size is less than our order need.
                 if quote.loc[l, 'size'] <= order['size']:
                     filled['price'].append(quote.loc[l, 'price'])
                     filled['size'].append(quote.loc[l, 'size'])
                     order['size'] -= quote.loc[l, 'size']
                     l = next_level(l)
-                # if actual quote size is more than our order need.
                 else:
                     filled['price'].append(quote.loc[l, 'price'])
                     filled['size'].append(order['size'])
@@ -129,7 +121,7 @@ class GeneralExchange(object):
         # case 4, side is 'sell' and level is 'ask', wait in trading queue.
         if order['side'] == 'sell' and order_level[:3] == 'ask':
             # return if no order is traded at this moment.
-            if trade is None:
+            if trade.empty:
                 return (order, filled)
             # init order position.
             if order['pos'] == -1:
@@ -142,18 +134,13 @@ class GeneralExchange(object):
                     # until reach order’s price.
                     if price < order['price']:
                         break
-                    # calculate available quantity.
                     available_size = max(0, size - order['pos'])
-                    # refresh order position.
                     order['pos'] = max(0, order['pos'] - size)
-                    # execute order if it is on the front.
                     if order['pos'] == 0:
-                        # if actual trade is less than our order need.
                         if available_size < order['size']:
                             filled['price'].append(order['price'])
                             filled['size'].append(available_size)
                             order['size'] -= available_size
-                        # if actual trade is more than our order need.
                         else:
                             filled['price'].append(order['price'])
                             filled['size'].append(order['size'])
