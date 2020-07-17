@@ -18,7 +18,7 @@ def exchange():
     data_config = json.load(open('test/config/data.json', 'r'))
     quote, trade = load_tickdata(data_config['stock'], data_config['time'])
     data = TickData(quote, trade)
-    return GeneralExchange(data)
+    return GeneralExchange(data, 3)
 
 
 class TestGeneralExchange(object):

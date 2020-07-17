@@ -30,9 +30,9 @@ def test_transaction(transaction_engine, params, reportdir):
 if __name__ == '__main__':
     quote, trade = load_tickdata(stock='000001', time='20140704')
     data = TickData(quote, trade)
-    exchange = GeneralExchange(data)
+    exchange = GeneralExchange(data, 3)
 
     _, params = load_case('orders.txt')
     
-    reportdir = 'test/results/manual_test_transaction.txt'
+    reportdir = 'test/results/manual_test_exchange.txt'
     test_transaction(exchange.transaction_engine, params, reportdir)

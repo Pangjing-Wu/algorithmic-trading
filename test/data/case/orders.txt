@@ -1,1 +1,1 @@
-{"case": "general test", "params": {"order": {"time": 34200000, "side": "buy", "price": 10, "size": 10000, "pos": -1}}, "excepted": {"order": {"time": 34200000, "side": "buy", "price": 10, "size": 0, "pos": 0}, "trade": {"price": [9.97], "size": [10000]}}}
+{"case": "general test", "params": {"order": {"time": 34200000, "side": "buy", "price": 9.96, "size": 10000, "pos": -1}}, "excepted": {"order": {"time": 34200000, "side": "buy", "price": 10, "size": 0, "pos": 0}, "trade": {"price": [9.97], "size": [10000]}}}
