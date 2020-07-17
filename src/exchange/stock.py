@@ -2,8 +2,16 @@ import numpy as np
 
 class GeneralExchange(object):
 
-    def __init__(self, tickdata):
+    def __init__(self, tickdata, wait_t):
+        '''
+        arguments:
+        ----------
+            tickdata: TickData, tick-level data.
+            wait_t: int, waiting number of trade records before
+                transaction.
+        '''
         self._data = tickdata
+        self._wait_t = wait_t
     
     def transaction_engine(self, order)->tuple:
         '''
@@ -20,11 +28,9 @@ class GeneralExchange(object):
             keys are ('price', 'size').
         '''
         
-        # arguments checking
-        self._order_check(order)
-        
-        # shortcut function.
         next_level = lambda level: level[:3] + str(int(level[3:]) + 1)
+
+        self._check_order(order)
         
         # query data from datasource.
         quote, trade = self._query_data(order['time'])
@@ -69,31 +75,23 @@ class GeneralExchange(object):
 
         # case 2, side is 'buy' and level is 'bid', wait in trading queue.
         if order['side'] == 'buy' and order_level[:3] == 'bid':
-            # return if no order is traded at this moment.
-            if trade.empty:
-                return (order, filled)
             # init order position if pos is -1.
             if order['pos'] == -1:
-                order['pos'] = quote.loc[order_level]['size']
-            # if an order whose price is lower or equal to ours is filled.
-            if trade['price'][0] <= order['price']:
-                # keep buying...
-                for price, size in zip(trade['price'], trade['size']):
-                    # until reach order’s price.
-                    if price > order['price']:
-                        break
-                    available_size = max(0, size - order['pos'])
-                    order['pos'] = max(0, order['pos'] - size)
-                    if order['pos'] == 0:
-                        if available_size < order['size']:
-                            filled['price'].append(order['price'])
-                            filled['size'].append(available_size)
-                            order['size'] -= available_size
-                        else:
-                            filled['price'].append(order['price'])
-                            filled['size'].append(order['size'])
-                            order['size'] = 0
-                            break
+                order['pos'] = self._wait_t
+            # return blank filled if trade is empty.
+            if trade.empty:
+                return (order, filled)
+            # update order position.
+            for _ in trade[trade['price']==order['price']]:
+                if order['pos'] == 0:
+                    break
+                order['pos'] -= 1
+            # transaction.
+            if order['pos'] == 0:
+                size = min(order['size'], quote.loc[order_level,'size'])
+                filled['price'].append(quote.loc[order_level, 'price'])
+                filled['size'].append(quote.loc[order_level, 'size'])
+                order['size'] -= quote.loc[order_level, 'size']
             return (order, filled)
 
         # case 3, side is 'sell' and level is 'bid', transact directly.                            
@@ -120,33 +118,24 @@ class GeneralExchange(object):
 
         # case 4, side is 'sell' and level is 'ask', wait in trading queue.
         if order['side'] == 'sell' and order_level[:3] == 'ask':
-            # return if no order is traded at this moment.
+            # init order position if pos is -1.
+            if order['pos'] == -1:
+                order['pos'] = self._wait_t
+            # return blank filled if trade is empty.
             if trade.empty:
                 return (order, filled)
-            # init order position.
-            if order['pos'] == -1:
-                order['pos'] = quote.loc[order_level]['size']
-            trade = trade[::-1] # reverse price order of trade.    
-            # if an order whose price is higher or equal to ours is filled.
-            if trade['price'][len(trade)-1] >= order['price']:
-                # keep selling...
-                for price, size in zip(trade['price'], trade['size']):
-                    # until reach order’s price.
-                    if price < order['price']:
-                        break
-                    available_size = max(0, size - order['pos'])
-                    order['pos'] = max(0, order['pos'] - size)
-                    if order['pos'] == 0:
-                        if available_size < order['size']:
-                            filled['price'].append(order['price'])
-                            filled['size'].append(available_size)
-                            order['size'] -= available_size
-                        else:
-                            filled['price'].append(order['price'])
-                            filled['size'].append(order['size'])
-                            order['size'] = 0
-                            break
-            return(order, filled)
+            # update order position.
+            for _ in trade[trade['price']==order['price']]:
+                if order['pos'] == 0:
+                    break
+                order['pos'] -= 1
+            # transaction.
+            if order['pos'] == 0:
+                size = min(order['size'], quote.loc[order_level,'size'])
+                filled['price'].append(quote.loc[order_level, 'price'])
+                filled['size'].append(quote.loc[order_level, 'size'])
+                order['size'] -= quote.loc[order_level, 'size']
+            return (order, filled)
 
         # raise exception if order is not in previous 4 conditions.
         raise Exception("An unknown error occured, " \
@@ -158,10 +147,9 @@ class GeneralExchange(object):
                            "cannot find corresponding data.")
         quote = self._data.quote_board(time)
         trade = self._data.get_trade_between(time)
-        trade = self._data.trade_sum(trade)
         return quote, trade
 
-    def _order_check(self, order):
+    def _check_order(self, order):
         if type(order) != dict:
             raise TypeError("argument type of order must be dict.")
         if order['side'] not in ['buy', 'sell']:
