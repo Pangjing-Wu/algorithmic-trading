@@ -162,18 +162,19 @@ class GeneralExchange(object):
         trade = self._data.trade_sum(trade)
         return quote, trade
 
-    def __check_order(self, order):
+    def _check_order(self, order):
         if type(order) != dict:
             raise TypeError("argument type of order must be dict.")
         if order['side'] not in ['buy', 'sell']:
-            raise KeyError("argument value of order['side'] "\
-                           "must be 'buy' or 'sell'.")
+            raise KeyError("order['side'] value must be 'buy' or 'sell'.")
         if type(order['time']) not in [int, np.int32, np.int64]:
             raise TypeError("argument type of order['time'] must be int.")
         if type(order['price']) not in [int, np.int32, np.int64, 
                                         float, np.float32, np.float64]:
             raise TypeError("argument type of order['price'] "\
                             "must be int or float.")
+        if order['size'] < 0:
+            raise KeyError("order['size'] value must be positive integer or 0.")                    
         if type(order['size']) not in [int, np.int32, np.int64]:
             raise TypeError("argument type of order['size'] must be int.")
         if type(order['pos']) not in [int, np.int32, np.int64]:
