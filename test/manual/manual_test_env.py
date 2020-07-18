@@ -33,7 +33,7 @@ def test_env_step(env, params, reportdir):
 if __name__ == '__main__':
     quote, trade = load_tickdata(stock='000001', time='20140704')
     data = TickData(quote, trade)
-    exchange = GeneralExchange(data)
+    exchange = GeneralExchange(data, 3)
     env = AlgorithmicTradingEnv(
         tickdata=data,
         transaction_engine=exchange.transaction_engine,

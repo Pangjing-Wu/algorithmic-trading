@@ -20,7 +20,7 @@ def env():
     agent_config  = json.load(open('test/config/agent.json', 'r'))['agent']
     quote, trade = load_tickdata(data_config['stock'], data_config['time'])
     data = TickData(quote, trade)
-    exchange = GeneralExchange(data)
+    exchange = GeneralExchange(data, 3)
     trader = AlgorithmicTradingEnv(
         tickdata=data,
         transaction_engine=exchange.transaction_engine,
