@@ -7,14 +7,6 @@ class TickData(object):
     def __init__(self, quote: pd.DataFrame, trade: pd.DataFrame):
         self._quote = quote
         self._trade = trade
-        # set data type.
-        int_cols = self._quote.filter(like='size').columns.tolist()
-        float_cols = self._quote.filter(like='ask').columns.tolist()
-        float_cols += self._quote.filter(like='bid').columns.tolist()
-        self._quote[int_cols]  = self._quote[int_cols].astype(int)
-        self._quote[float_cols] = self._quote[float_cols].astype(float)
-        self._trade['price'] = self._trade['price'].astype(float)
-        self._trade['size']  = self._trade['size'].astype(int)
     
     def __len__(self):
         return (self._quote.shape[0] + self._trade.shape[0])

@@ -111,6 +111,14 @@ def load(stock, dbdir, user, psw):
         trade = h2.query(sql % (','.join(TRADE_COLS), 'trade_' + stock, *TIMES))
         quote.columns = QUOTE_COLS
         trade.columns = TRADE_COLS
+        # form data type.
+        int_cols = quote.filter(like='size').columns.tolist()
+        float_cols = quote.filter(like='ask').columns.tolist()
+        float_cols += quote.filter(like='bid').columns.tolist()
+        quote[int_cols]  = quote[int_cols].astype(int)
+        quote[float_cols] = quote[float_cols].astype(float)
+        trade['price'] = trade['price'].astype(float)
+        trade['size']  = trade['size'].astype(int)
     else:
         raise ConnectionError("cannot connect to H2 service, please strat H2 service first.")
     return quote, trade
