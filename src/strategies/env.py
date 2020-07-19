@@ -91,6 +91,10 @@ class AlgorithmicTradingEnv(object):
             raise NotInitiateError
         if self._final == True:
             raise EnvTerminatedError
+
+        if action[1] not in self._level_space:
+            raise KeyError("action[1] should be in %s." % self._level_space)
+
         # get current timestamp.
         t = self._time[self._i]
         info = 'At %s ms, ' % t
