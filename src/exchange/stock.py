@@ -86,7 +86,7 @@ class GeneralExchange(object):
                     l = self._next_level(l)
                 else:
                     filled['price'].append(quote.loc[l, 'price'])
-                    filled['size'].append(quote.loc[l, 'size'])
+                    filled['size'].append(order['size'])
                     order['size'] = 0
                     break
         return (order, filled)
