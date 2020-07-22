@@ -1,11 +1,15 @@
+import sys
+sys.path.append('./')
+
 import numpy as np
 
+from src.utils.errors import *
 
 # TODO improve logger function.
 
 class AlgorithmicTradingEnv(object):
     '''
-    Arguments:
+    arguments:
     ----------
     data: TickData, tick data consist of quote and trade.
     transaction_engine: callable, transaction engine.
@@ -76,8 +80,7 @@ class AlgorithmicTradingEnv(object):
         argument:
         ---------
         action: list, tuple, or array like,
-                forms as [side, level, size], where
-                dirction: int, 0=buy, 1=sell.
+                forms as [side, level, size], where side in {0=buy, 1=sell}.
         returns:
         --------
         next_s: np.array, next state of environment and agent.
@@ -99,7 +102,7 @@ class AlgorithmicTradingEnv(object):
         t = self._time[self._i]
         info = 'At %s ms, ' % t
         # issue an new order if the size of action great than 0.
-        if action[-1] > 0:
+        if action[2] > 0:
             self._order = self._create_new_order(action) 
             info += 'issue an order %s; ' % self._order
         # else execute remaining order.
@@ -170,7 +173,7 @@ class AlgorithmicTradingEnv(object):
         ---------
         action: list, tuple, or array like,
                 forms as [side, level, size], where
-                dirction: int, 0=buy, 1=sell.
+                side: int, 0=buy, 1=sell.
         return:
         -------
         order: dict, keys are formed by
