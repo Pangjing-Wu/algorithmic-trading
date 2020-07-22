@@ -7,7 +7,7 @@ import pytest
 
 from src.datasource.datatype import TickData
 from src.exchange.stock import GeneralExchange
-from src.strategies.env import AlgorithmicTradingEnv
+from src.strategies.env.buyer_seller import AlgorithmicTradingEnv
 from utils.dataloader import load_tickdata, load_case
 
 
