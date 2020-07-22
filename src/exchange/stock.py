@@ -37,7 +37,7 @@ class GeneralExchange(object):
 
         quote, trade = self._query_data(order['time'])
 
-        filled = {'price': [], 'size': []}
+        filled = {'time':[], 'price': [], 'size': []}
 
         if order['pos'] == -1:
             order['pos'] = self._wait_t
@@ -80,11 +80,13 @@ class GeneralExchange(object):
                     l = self._next_level(l)
                     continue
                 elif quote.loc[l, 'size'] < order['size']:
+                    filled['time'].append(order['time'])
                     filled['price'].append(quote.loc[l, 'price'])
                     filled['size'].append(quote.loc[l, 'size'])
                     order['size'] -= quote.loc[l, 'size']
                     l = self._next_level(l)
                 else:
+                    filled['time'].append(order['time'])
                     filled['price'].append(quote.loc[l, 'price'])
                     filled['size'].append(order['size'])
                     order['size'] = 0
@@ -101,11 +103,11 @@ class GeneralExchange(object):
 
     def _update_pos_by_trade(self, order, trade) -> int:
         pos = order['pos']
-        for _ in range(len(trade[trade['price']==order['price']])):
-                if pos == 0:
-                    break
-                else:
-                    pos -= 1
+        for _ in trade[trade['price'] == order['price']].index:
+            if pos == 0:
+                break
+            else:
+                pos -= 1
         return pos
 
     def _check_order(self, order):

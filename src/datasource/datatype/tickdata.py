@@ -94,12 +94,4 @@ class TickData(object):
         else:
             raise TypeError("post_quote must be 'None', int, or pd.Series")
         trade = self._trade[(self._trade['time'] > pre_quote) & (self._trade['time'] < post_quote)]
-        return None if trade.empty else trade
-
-    def trade_sum(self, trade:pd.DataFrame)->pd.DataFrame:
-        if trade is None:
-            return None
-        elif trade.empty:
-            return None
-        else:
-            return trade[['price', 'size']].groupby('price').sum().reset_index()
+        return trade

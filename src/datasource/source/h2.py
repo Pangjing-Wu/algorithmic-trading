@@ -6,6 +6,17 @@ import pandas as pd
 import psycopg2
 
 # TODO improve logger module
+
+
+QUOTE_COLS = ["time", "bid1", "bsize1", "ask1", "asize1", "bid2", "bsize2", "ask2",
+        "asize2", "bid3", "bsize3", "ask3", "asize3", "bid4", "bsize4", "ask4", "asize4",
+        "bid5", "bsize5", "ask5", "asize5", "bid6", "bsize6", "ask6", "asize6", "bid7",
+        "bsize7", "ask7", "asize7", "bid8", "bsize8", "ask8", "asize8", "bid9", "bsize9",
+        "ask9", "asize9", "bid10", "bsize10", "ask10", "asize10"]
+TRADE_COLS = ["time", "price", "size"]
+TIMES = [34200000, 41400000, 46800000, 54000000]
+
+
 class H2Connection(object):
 
     def __init__(self, dbdir, user, password, host='localhost', port='5435', h2_start_wait=3):
@@ -96,14 +107,6 @@ def load(stock, dbdir, user, psw):
     '''
     
     h2 = H2Connection(dbdir, user, psw)
-
-    QUOTE_COLS = ["time", "bid1", "bsize1", "ask1", "asize1", "bid2", "bsize2", "ask2",
-        "asize2", "bid3", "bsize3", "ask3", "asize3", "bid4", "bsize4", "ask4", "asize4",
-        "bid5", "bsize5", "ask5", "asize5", "bid6", "bsize6", "ask6", "asize6", "bid7",
-        "bsize7", "ask7", "asize7", "bid8", "bsize8", "ask8", "asize8", "bid9", "bsize9",
-        "ask9", "asize9", "bid10", "bsize10", "ask10", "asize10"]
-    TRADE_COLS = ["time", "price", "size"]
-    TIMES = [34200000, 41400000, 46800000, 54000000]
 
     if h2.status:
         sql = "select %s from %s where time between %s and %s or time between %s and %s"
