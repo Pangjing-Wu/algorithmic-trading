@@ -6,12 +6,12 @@ sys.path.append('./test')
 
 from src.datasource.datatype import TickData
 from src.exchange.stock import GeneralExchange
-from src.strategies.env import AlgorithmicTradingEnv
+from src.strategies.env.buyer_seller import AlgorithmicTradingEnv
 from utils.dataloader import load_tickdata, load_case
 
 
 def test_env_step(env, params, reportdir):
-    with open(reportdir, 'a') as f:
+    with open(reportdir, 'w') as f:
         f.write('==========================\n')
         f.write('%s\n' % datetime.datetime.now())
         try:

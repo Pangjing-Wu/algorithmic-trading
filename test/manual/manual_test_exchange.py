@@ -9,7 +9,7 @@ from src.exchange.stock import GeneralExchange
 from utils.dataloader import load_tickdata, load_case
 
 def test_transaction(transaction_engine, params, reportdir):
-    with open(reportdir, 'a') as f:
+    with open(reportdir, 'w') as f:
         f.write('==========================\n')
         f.write('%s\n' % datetime.datetime.now())
         for p in params:
