@@ -14,12 +14,13 @@ time = [34200000, 41400000, 46800000, 53700000]
 
 exchange = GeneralExchange(data, 3)
 
-env = VWAPEnv(data, 1000, time, 1800000, trade, exchange.transaction_engine)
+env = VWAPEnv(data, 2000, time, 1200000, trade, exchange.transaction_engine)
 
 agent = VWAPAgent(side='sell', threshold=0.1)
 
 s = env.reset()
 final = env.is_final()
+
 
 with open('test/results/manual_test_vwap.txt', 'w') as f:
     while not final:
