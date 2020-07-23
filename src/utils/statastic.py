@@ -25,18 +25,15 @@ def group_trade_volume_by_time(trade:pd.DataFrame, time:list, interval:int=0) ->
         else:
             raise KeyError('interval must not be negative.')
 
-        for j in range(len(time_slices)):
+        if time_slices[-1] != time[i+1]:
+            time_slices.append(time[i+1])
+
+        for j in range(len(time_slices) - 1):
             t0 = time_slices[j]
-            if j < len(time_slices) - 1:
-                t1 = time_slices[j+1]
-                index = (trade['time'] >= t0) & (trade['time'] < t1)
-                volumes['start'].append(t0)
-                volumes['end'].append(t1)
-                volumes['volume'].append(int(trade[index]['size'].sum()))
-            else:
-                index = trade['time'] >= t0
-                volumes['start'].append(t0)
-                volumes['end'].append(time[i+1])
-                volumes['volume'].append(int(trade[index]['size'].sum()))
+            t1 = time_slices[j+1]
+            index = (trade['time'] >= t0) & (trade['time'] < t1)
+            volumes['start'].append(t0)
+            volumes['end'].append(t1)
+            volumes['volume'].append(int(trade[index]['size'].sum()))
 
     return pd.DataFrame(volumes)
