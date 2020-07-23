@@ -1,3 +1,4 @@
+from math import floor
 from tqdm import tqdm
 import sys
 sys.path.append('./')
@@ -9,7 +10,7 @@ from src.utils.errors import *
 
 
 Inf = 0x7EEEEEEE
-
+argmax = lambda a: [i for i, val in enumerate(a) if (val == max(a))][0]
 
 class VWAPEnv(object):
 
@@ -20,17 +21,20 @@ class VWAPEnv(object):
             raise KeyError("argument time should have 2 or multiples of 2 elements.")
 
         self._data = tickdata
+        self._goal = goal
         self._interval = interval
         self._engine = transaction_engine
         self._hist_volume = group_trade_volume_by_time(hist_trade, time, interval)
         
-        self._subtasks = pd.DataFrame(dict(
+        subgoals = [floor(goal * v / sum(self._hist_volume['volume'])) for v in self._hist_volume['volume']]
+        subgoals[argmax(subgoals)] += self._goal - sum(subgoals)
+        subtasks = dict(
             start=self._hist_volume['start'],
             end=self._hist_volume['end'],
-            goal=[round(goal * v / sum(self._hist_volume['volume'])) for v in self._hist_volume['volume']],
-            filled=0)
+            goal=subgoals,
+            filled=0
             )
-        self._goal = self._subtasks['goal'].sum()
+        self._subtasks = pd.DataFrame(subtasks)
 
         self._time = []
         for i in range(0, len(time), 2):
@@ -88,7 +92,7 @@ class VWAPEnv(object):
             forms as [side, level, size], where side in {0=buy, 1=sell}.
         Returns:
         --------
-        schedual: float, process schedual of current subtask.
+        schedule: float, process schedule of current subtask.
 
         final: bool, final signal.
 
@@ -117,7 +121,7 @@ class VWAPEnv(object):
         for key in self._filled:
             self._filled[key] += filled[key]
         
-        schedual_ratio = self._schedual_ratio(task, t)
+        schedule_ratio = self._schedule_ratio(task, t)
 
         if t == self._time[-1]:
             self._final = True
@@ -129,7 +133,7 @@ class VWAPEnv(object):
 
         info += 'current subtask is:\n%s\n'% task
 
-        return (schedual_ratio, self._final, info)
+        return (schedule_ratio, self._final, info)
 
     def _create_new_order(self, action, time):
         '''
@@ -153,13 +157,11 @@ class VWAPEnv(object):
         index = self._subtasks[condition].index[0]
         return self._subtasks.loc[index]
         
-    def _schedual_ratio(self, task, current_t):
+    def _schedule_ratio(self, task, current_t):
         if task['goal'] == 0:
             return Inf
-
         filled_ratio = task['filled'] / task['goal']
         time_ratio = (current_t - task['start']) / (task['end'] - task['start'])
-
         if filled_ratio == 1:
             return Inf
         if time_ratio == 0:
@@ -169,10 +171,8 @@ class VWAPEnv(object):
             
     def _update_tqdm(self, task, increment):
         if task.name not in self._tqdm_id:
-
             if len(self._tqdm_id) > 0:
                 self._tqdm.close()
-
             self._tqdm_id.append(task.name)
             self._tqdm = tqdm(desc='task %s' % task.name, total=task['goal'])
 
