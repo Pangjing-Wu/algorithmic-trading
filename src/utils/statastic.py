@@ -1,4 +1,7 @@
+from typing import List, Union
+
 import pandas as pd
+
 
 def group_trade_by_price(trade:pd.DataFrame)->pd.DataFrame:
 
@@ -10,18 +13,22 @@ def group_trade_by_price(trade:pd.DataFrame)->pd.DataFrame:
         return trade[['price', 'size']].groupby('price').sum().reset_index()
 
 
-def group_trade_volume_by_time(trade:pd.DataFrame, time:list, interval:int=0) -> pd.DataFrame:
+def group_trade_volume_by_time(trades:Union[pd.DataFrame, List[pd.DataFrame]],
+                               time:List[int], interval:int=0) -> pd.DataFrame:
+    
     volumes = {'start':[], 'end':[], 'volume':[]}
 
     if len(time) < 2 and len(time) % 2 != 0:
         raise KeyError("argument time should have 2 or multiples of 2 elements.")
+
+    trades = [trades] if type(trades) == pd.DataFrame else trades
     
     for i in range(0, len(time), 2):
-
+        
         if interval > 0:
             time_slices = list(range(time[i], time[i+1], interval))
         elif interval == 0:
-            time_slices = [trade['time'].iloc[0]]
+            time_slices = [trades[0]['time'].iloc[0]]
         else:
             raise KeyError('interval must not be negative.')
 
@@ -31,9 +38,14 @@ def group_trade_volume_by_time(trade:pd.DataFrame, time:list, interval:int=0) ->
         for j in range(len(time_slices) - 1):
             t0 = time_slices[j]
             t1 = time_slices[j+1]
-            index = (trade['time'] >= t0) & (trade['time'] < t1)
+            volume = 0
+
+            for trade in trades:
+                index = (trade['time'] >= t0) & (trade['time'] < t1)
+                volume += trade[index]['size'].sum()
+
             volumes['start'].append(t0)
             volumes['end'].append(t1)
-            volumes['volume'].append(int(trade[index]['size'].sum()))
+            volumes['volume'].append(int(volume / len(trades)))
 
     return pd.DataFrame(volumes)
