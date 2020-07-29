@@ -44,13 +44,14 @@ class H2Connection(object):
             if os.name == 'nt':
                 raise ConnectionError("H2 service is not running." \
                     " Since windows doesn't support H2 automatic start, please start h2 service manually.")
-            if self._is_h2_online():
-                raise ConnectionError("H2 service is running, but connection is refused." \
-                    " Please double check username and password or restart h2 service manually.")
             else:
-                self._start_h2_service(h2_start_wait)
-                self._conn = psycopg2.connect(dbname=dbdir, user=user, password=password, host=host, port=port)
+                if self._is_h2_online():
+                    raise ConnectionError("H2 service is running, but connection is refused." \
+                        " Please double check username and password or restart h2 service manually.")
+                else:
+                    self._start_h2_service(h2_start_wait)
         finally:
+            self._conn = psycopg2.connect(dbname=dbdir, user=user, password=password, host=host, port=port)
             self._cur = self._conn.cursor()
 
     def query(self, sql: str, *args)->pd.DataFrame:
@@ -92,7 +93,7 @@ class H2Connection(object):
                 raise ConnectionError('Cannot start H2 service.')
 
 
-def load(stock, dbdir, user, psw):
+def load(stock, dbdir, user, psw, **kwargs):
     '''
     arguments:
     ----------
@@ -106,7 +107,7 @@ def load(stock, dbdir, user, psw):
     trade: pandas.DataFrame, trade data.
     '''
     
-    h2 = H2Connection(dbdir, user, psw)
+    h2 = H2Connection(dbdir, user, psw, **kwargs)
 
     if h2.status:
         sql = "select %s from %s where time between %s and %s or time between %s and %s"
