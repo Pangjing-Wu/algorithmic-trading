@@ -67,7 +67,7 @@ class TrancheEnv(object):
         self._iter = iter(self._time)
         self._t = next(self._iter)
         self._filled = {'time': [], 'price':[], 'size':[]}
-        self._order = {'time': 0, 'side': 0, 'price': 0, 'size': 0, 'pos': -1}
+        self._order = {'time': 0, 'side': 'buy', 'price': 0, 'size': 0, 'pos': -1}
         self._tqdm  = tqdm(desc='task %s' % self._task.name, total=self._task['goal'])
         state = [self._t, self._task['start'], self._task['end'], self._task['goal'], sum(self._filled['size'])]
         return state
@@ -108,16 +108,12 @@ class TrancheEnv(object):
 
         if self._t == self._time[-1]:
             self._final = True
-        if sum(self._filled['size']) == self._task['goal']:
-            self._final = True
+            self._tqdm.close()
 
         if self._final and sum(self._filled['size']) != self._task['goal']:
             reward = -999
         else:
             reward = self.vwap - self.market_vwap
-
-        if self._final:
-            self._tqdm.close()
 
         state = [self._t, self._task['start'], self._task['end'], self._task['goal'], sum(self._filled['size'])]
         
@@ -142,20 +138,29 @@ class TrancheEnv(object):
         return order
 
 
-def generate_tranches(goal, volume_profile, **tranche_kwargs):
+class GenerateTranches(object):
 
-    ratio = [v / sum(volume_profile['volume']) for v in volume_profile['volume']]
-
-    subgoals = [int(goal * r // 100 * 100) for r in ratio]
-    subgoals[argmax(subgoals)] += goal - sum(subgoals)
-
-    subtasks = pd.DataFrame(
-        dict(
-            start=volume_profile['start'],
-            end=volume_profile['end'],
-            goal=subgoals
-        )
-    )
+    def __init__(self, goal, volume_profile, **env_kwargs):
+        ratio = [v / sum(volume_profile['volume']) for v in volume_profile['volume']]
+        subgoals = [int(goal * r // 100 * 100) for r in ratio]
+        subgoals[argmax(subgoals)] += goal - sum(subgoals)
+        self._subtasks = pd.DataFrame(dict(start=volume_profile['start'], end=volume_profile['end'], goal=subgoals))
+        self._envs = [TrancheEnv(task=self._subtasks.loc[i], **env_kwargs) for i in self._subtasks.index]
     
-    for i in subtasks.index:
-        yield TrancheEnv(task=subtasks.loc[i], **tranche_kwargs)
+    def __iter__(self):
+        for env in self._envs:
+            yield env
+
+    def __getitem__(self, item):
+        return self._envs[item]
+
+    def __len__(self):
+        return len(self._envs)
+
+    @property
+    def observation_space_n(self):
+        return self._envs[0].observation_space_n
+
+    @property
+    def action_space_n(self):
+        return self._envs[0].action_space_n
