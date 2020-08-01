@@ -3,9 +3,9 @@ import json
 import pandas as pd
 
 
-def load_tickdata(stock, time):
-    quote = pd.read_csv('test/data/tickdata/%s-quote-%s.csv' % (stock, time))
-    trade = pd.read_csv('test/data/tickdata/%s-trade-%s.csv' % (stock, time))
+def load_tickdata(stock, date):
+    quote = pd.read_csv('test/data/tickdata/%s-quote-%s.csv' % (stock, date))
+    trade = pd.read_csv('test/data/tickdata/%s-trade-%s.csv' % (stock, date))
     return quote, trade
 
 def load_case(casename):

@@ -10,7 +10,7 @@ from utils.dataloader import load_tickdata, load_case
 from src.datasource.datatype import TickData
 from src.utils.statastic import *
 
-quote, trade = load_tickdata(stock='000001', time='20140704')
+quote, trade = load_tickdata(stock='000001', date='20140704')
 data = TickData(quote, trade)
 trade = data.get_trade()
 time = [34200000, 41400000, 46800000, 54000000]

@@ -28,7 +28,7 @@ def test_transaction(transaction_engine, params, reportdir):
 
 
 if __name__ == '__main__':
-    quote, trade = load_tickdata(stock='000001', time='20140704')
+    quote, trade = load_tickdata(stock='000001', date='20140704')
     data = TickData(quote, trade)
     exchange = GeneralExchange(data, 3)
 
