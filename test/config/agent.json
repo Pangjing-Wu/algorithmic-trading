@@ -1,9 +1,0 @@
-{
-    "agent":{
-        "stock": "000001",
-        "time": "20140704",
-        "volume": 100000,
-        "reward": "vwap",
-        "max_level": 5
-    }
-}

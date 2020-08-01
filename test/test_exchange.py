@@ -16,7 +16,7 @@ cases, params = load_case('orders.txt')
 @pytest.fixture(scope='class')
 def exchange():
     data_config = json.load(open('test/config/data.json', 'r'))
-    quote, trade = load_tickdata(data_config['stock'], data_config['time'])
+    quote, trade = load_tickdata(data_config['stock'], data_config['date'])
     data = TickData(quote, trade)
     return GeneralExchange(data, 3)
 
