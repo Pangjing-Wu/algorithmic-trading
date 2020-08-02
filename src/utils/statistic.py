@@ -49,3 +49,21 @@ def group_trade_volume_by_time(trades:Union[pd.DataFrame, List[pd.DataFrame]],
             volumes['volume'].append(int(volume / len(trades)))
 
     return pd.DataFrame(volumes)
+
+
+def tranche_num(time:List[int], interval):
+
+    if len(time) < 2 and len(time) % 2 != 0:
+        raise KeyError("argument time should have 2 or multiples of 2 elements.")
+
+    if interval == 0:
+        num = 1
+    elif interval > 0:
+        num = 0
+        for i in range(0, len(time), 2):
+            timelist = list(range(time[i], time[i+1], interval))
+            num += len(timelist)
+    else:
+        raise KeyError('interval must not be negative.')
+    
+    return num

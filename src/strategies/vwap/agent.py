@@ -43,10 +43,26 @@ class Baseline(object):
             return filled_ratio / time_ratio
 
 
-class Linear(nn.Module):
-    
-    def __init__(self, input_size, output_size):
+class BasicDNN(nn.Module):
+
+    def __init__(self, criterion, optimizer):
         super().__init__()
+        self._criterion = criterion
+        self._optimizer = optimizer
+
+    @property
+    def criterion(self):
+        return self._criterion
+
+    @property
+    def optimizer(self):
+        return self._optimizer
+
+    
+class Linear(BasicDNN):
+    
+    def __init__(self, input_size, output_size, criterion, optimizer):
+        super().__init__(criterion, optimizer)
         self.l1 = nn.Linear(input_size, output_size, bias=False)
         nn.init.uniform_(self.l1.weight, 0, 0.01)
     
@@ -55,6 +71,6 @@ class Linear(nn.Module):
         x = self.l1(x)
         return x
 
-
-class Lstm(nn.Module):
+    
+class Lstm(BasicDNN):
     pass

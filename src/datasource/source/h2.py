@@ -14,7 +14,6 @@ QUOTE_COLS = ["time", "bid1", "bsize1", "ask1", "asize1", "bid2", "bsize2", "ask
         "bsize7", "ask7", "asize7", "bid8", "bsize8", "ask8", "asize8", "bid9", "bsize9",
         "ask9", "asize9", "bid10", "bsize10", "ask10", "asize10"]
 TRADE_COLS = ["time", "price", "size"]
-TIMES = [34200000, 41400000, 46800000, 54000000]
 
 
 class H2Connection(object):
@@ -93,36 +92,49 @@ class H2Connection(object):
                 raise ConnectionError('Cannot start H2 service.')
 
 
-def load(stock, dbdir, user, psw, **kwargs):
+def load_from_h2(stock, dbdir, user, psw, times=None, **kwargs):
     '''
     arguments:
     ----------
     dbdir: str, data base direction.
     user: str, user name of data base.
     paw: str, password of data base.
+    times: time range of data.
 
     returns:
     --------
     quote: pandas.DataFrame, quote data.
     trade: pandas.DataFrame, trade data.
     '''
-    
+    if times != None:
+        if len(times) % 2 != 0:
+            raise KeyError("argument time should have 2 or multiples of 2 elements.")
+
     h2 = H2Connection(dbdir, user, psw, **kwargs)
 
-    if h2.status:
-        sql = "select %s from %s where time between %s and %s or time between %s and %s"
-        quote = h2.query(sql % (','.join(QUOTE_COLS), 'quote_' + stock, *TIMES))
-        trade = h2.query(sql % (','.join(TRADE_COLS), 'trade_' + stock, *TIMES))
-        quote.columns = QUOTE_COLS
-        trade.columns = TRADE_COLS
-        # form data type.
-        int_cols = quote.filter(like='size').columns.tolist()
-        float_cols = quote.filter(like='ask').columns.tolist()
-        float_cols += quote.filter(like='bid').columns.tolist()
-        quote[int_cols]  = quote[int_cols].astype(int)
-        quote[float_cols] = quote[float_cols].astype(float)
-        trade['price'] = trade['price'].astype(float)
-        trade['size']  = trade['size'].astype(int)
-    else:
+    if h2.status is False:
         raise ConnectionError("cannot connect to H2 service, please strat H2 service first.")
+    
+    sql = "select %s from %s "
+    if times != None:
+        sql += "where time between "
+        for i in range(0, len(times), 2):
+            if i != 0:
+                sql += "or time between "
+            sql += "%s and %s " % (times[i], times[i+1])
+
+    quote = h2.query(sql % (','.join(QUOTE_COLS), 'quote_' + stock))
+    trade = h2.query(sql % (','.join(TRADE_COLS), 'trade_' + stock))
+    quote.columns = QUOTE_COLS
+    trade.columns = TRADE_COLS
+    
+    # transform data type.
+    int_cols = quote.filter(like='size').columns.tolist()
+    float_cols = quote.filter(like='ask').columns.tolist()
+    float_cols += quote.filter(like='bid').columns.tolist()
+    quote[int_cols]  = quote[int_cols].astype(int)
+    quote[float_cols] = quote[float_cols].astype(float)
+    trade['price'] = trade['price'].astype(float)
+    trade['size']  = trade['size'].astype(int)
+
     return quote, trade

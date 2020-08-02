@@ -1,84 +1,90 @@
-import random
-import sys
-sys.path.append('./')
+import os
 
-
-import numpy as np
 import torch
-import torch.nn as nn
 
-from src.datasource.datatype.tickdata import TickData
-from src.exchange.stock import GeneralExchange
-from src.strategies.vwap.agent import Linear
-from src.strategies.vwap.env import GenerateTranches
-from src.utils.statistic import group_trade_volume_by_time
+class BaselineTraining(object):
 
-# remove in future
-sys.path.append('./test')
-from utils.dataloader import load_tickdata, load_case
+    def __init__(self, agent):
+        self._agent = agent
+        self._actions = []
+        self._reward = 0
 
+    @property
+    def action_track(self):
+        return self._actions
 
-def episodic_training(env, agent, episodes, epsilon=0.1, gamma=0.99, delta_eps = 0.998):
+    @property
+    def reward(self):
+        return self._reward
 
-    criterion = nn.MSELoss()
-    optimizer = torch.optim.Adam(agent.parameters())
-
-    reward_list = []
-
-    for _ in range(episodes):
+    def train(self, env):
+        self._actions = []
         s = env.reset()
-        final = False
-        R = 0
-
+        final = env.is_final()
         while not final:
-            Q = agent(s)
-            # choose action by epsilon greedy.
-            if np.random.rand() < epsilon:
-                a = random.sample(env.action_space, 1)[0]
-            else: 
-                a = torch.argmax(Q).item()
-            order = [1, 0, 0] if a == env.action_space[-1] else [1, a, 100]
+            a = agent(s)
+            s, r, final = env.step(a)
+            self._actions.append(a)
+            self._reward.append(r)
 
-            s1, r, final = env.step(order)
-            R += r
+
+class EpisodicTraining(BaselineTraining):
+
+    def __init__(self, agent, episodes, epsilon=0.1, gamma=0.99,
+                 delta_eps=0.998, action_map=None):
+        super().__init__(agent)
+        self._episodes   = episodes
+        self._epsilon    = epsilon
+        self._gamma      = gamma
+        self._delta_eps  = delta_eps
+        self._criterion  = self._agent.criterion
+        self._optimizer  = self._agent.optimizer(self._agent.parameters())
+        self._action_map = action_map
+
+    def train(self, env, savedir):
+
+        best_reward = None
+
+        for episode in range(self._episodes):
+            s = env.reset()
+            final = False
+            reward = 0
+
+            while not final:
+                Q = self._agent(s)
+
+                # epsilon greedy
+                if random.random() < self._episodes:
+                    a = random.sample(env.action_space, 1)[0]
+                else: 
+                    a = torch.argmax(Q).item()
+
+                action = a if self._action_map == None else self._action_map(a)
+
+                s1, r, final = env.step(action)
+                reward += r
+                
+                # calculate next state's Q-values.
+                Q1max = self._agent(s1).max()
+                with torch.no_grad():
+                    Q_target = Q.clone()
+                    Q_target[a] = r + gamma * Q1max
+
+                loss = self._criterion(Q, Q_target)
+                self._optimizer.zero_grad()
+                loss.backward()
+                self._optimizer.step()
+
+                s = s1
+                if final is True:
+                    epsilon *= delta_eps
+                    break
             
-            # calculate next state's Q-values.
-            Q1max = agent(s1).max()
-            with torch.no_grad():
-                Q_target = Q.clone()
-                Q_target[a] = r + gamma * Q1max
+            if best_reward == None or best_reward < reward:
+                best_reward = reward
+                os.makedirs(os.getcwd(savedir), exist_ok=True)
+                torch.save(self._agent.state_dict(), savedir)
+                print('get best model at %d episode with reward %.5f, saved.' % (episode, best_reward))
 
-            loss = criterion(Q, Q_target)
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-
-            s = s1
-            if final is True:
-                epsilon *= delta_eps
-                break
-
-        # record results after pre episode.
-        reward_list.append(R)
-
-    print(reward_list)
-
-
-if __name__ == '__main__':
-
-    quote, trade = load_tickdata(stock='000001', time='20140704')
-    data = TickData(quote, trade)
-    trade = data.get_trade()
-    time = [34200000, 41400000, 46800000, 53700000]
-    params = dict(
-        tickdata = data,
-        level_space = ['bid1', 'ask1'],
-        transaction_engine = GeneralExchange(data, 3).transaction_engine,
-    )
-
-    volume_profile = group_trade_volume_by_time(trade, time, 1800000)
-
-    envs = GenerateTranches(20000, volume_profile, **params)
-    agent = Linear(envs.observation_space_n, envs.action_space_n)
-
-    episodic_training(envs[0], agent, 10)
+    def load(self, modeldir):
+        self._agent.load_state_dict(torch.load(modeldir))
