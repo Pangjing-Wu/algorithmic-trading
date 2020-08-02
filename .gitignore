@@ -4,3 +4,4 @@ __pycache__
 temp
 test/results
 results
+data/*.h2.db
