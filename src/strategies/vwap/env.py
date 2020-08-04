@@ -12,7 +12,7 @@ argmax = lambda a: [i for i, val in enumerate(a) if (val == max(a))][0]
 
 class TrancheEnv(object):
 
-    def __init__(self, tickdata, task:pd.Series, transaction_engine:callable, level_space:list):
+    def __init__(self, tickdata, task:pd.Series, transaction_engine:callable, level_space:list, verbose=0):
         self._data = tickdata
         self._task = task
         self._engine = transaction_engine
@@ -20,6 +20,7 @@ class TrancheEnv(object):
         self._init = False
         self._final = False
         self._time = [t for t in self._data.quote_timeseries if t >= task['start'] and t < task['end']]
+        self._verbose = verbose
     
     @property
     def action_space(self):
@@ -68,8 +69,9 @@ class TrancheEnv(object):
         self._t = next(self._iter)
         self._filled = {'time': [], 'price':[], 'size':[]}
         self._order = {'time': 0, 'side': 'buy', 'price': 0, 'size': 0, 'pos': -1}
-        self._tqdm  = tqdm(desc='task %s' % self._task.name, total=self._task['goal'])
         state = [self._t, self._task['start'], self._task['end'], self._task['goal'], sum(self._filled['size'])]
+        if verbose > 0:
+            self._tqdm = tqdm(desc='task %s' % self._task.name, total=self._task['goal'])
         return state
 
     def step(self, action):
@@ -101,14 +103,16 @@ class TrancheEnv(object):
         if sum(filled['size']) % 100 == 0:
             self._filled['price'] += filled['price']
             self._filled['size']  += filled['size']
-            self._tqdm.set_postfix(vwap=self.vwap, market_vwap=self.market_vwap)
-            self._tqdm.update(sum(filled['size']))
+            if self._verbose > 0:
+                self._tqdm.set_postfix(vwap=self.vwap, market_vwap=self.market_vwap)
+                self._tqdm.update(sum(filled['size']))
 
         self._t = next(self._iter)
 
         if self._t == self._time[-1]:
             self._final = True
-            self._tqdm.close()
+            if self._verbose > 0:
+                self._tqdm.close()
 
         if self._final and sum(self._filled['size']) != self._task['goal']:
             reward = -999
