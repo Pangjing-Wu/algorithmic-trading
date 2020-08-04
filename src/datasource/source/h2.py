@@ -60,7 +60,7 @@ class H2Connection(object):
         return data
 
     def _is_h2_online(self):
-        output = subprocess.getoutput('ps -la|grep h2|grep -v grep')
+        output = subprocess.getoutput('ps aux|grep org.h2|grep -v grep')
         status = True if len(output) else False
         return status
 
