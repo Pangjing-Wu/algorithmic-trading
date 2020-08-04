@@ -16,7 +16,10 @@ input: envs[day, tranche], agents[tranche]
 train agents
 '''
 import os
-import glob
+
+import torch
+import torch.nn as nn
+
 from src.datasource.source.h2 import load_from_h2
 from src.datasource.datatype.tickdata import TickData
 from src.utils.statistic import group_trade_volume_by_time, tranche_num
@@ -28,9 +31,9 @@ from src.strategies.vwap.train import BaselineTraining, EpisodicTraining
 
 stock = '000001'
 
-dbdir = ''
+dbdir = './data/'
 user  = 'cra001'
-paw   = 'cra001'
+psw   = 'cra001'
 times = [34200000, 41400000, 46800000, 54000000]
 
 pre_day = 20
@@ -41,16 +44,19 @@ method = 'baseline'
 side = 'sell'
 goal = 200000
 exchange = 'general'
-SAVEDIR = ''
-SAVEDIR = od.path.join(SAVEDIR, stock)
+level_spcae = ['bid1', 'ask1']
+SAVEDIR = './results'
+SAVEDIR = os.path.join(SAVEDIR, stock)
 
-datelist  = [f[2:-6] for f in glob.glob(os.path.join(dbdir, '*.h2.db'))]
+action_map = lambda a: [1, 0, 0] if a == len(level_spcae) else [1, a, 1]
+
+dates = [f[:8] for f in os.listdir(dbdir) if f[-5:] == 'h2.db']
 
 
 tickdatas = []
-for date in datelist:
+for date in dates[:1]:
     dbname = os.path.join(dbdir, date)
-    quote, trade = load_from_h2(stock, dbname, user, psw, times)
+    quote, trade = load_from_h2(stock, dbname, user, psw, times, port='8082')
     tickdatas.append(TickData(quote, trade))
 
 
@@ -60,11 +66,11 @@ for i in range(pre_day, len(tickdatas)):
     volume_profile = group_trade_volume_by_time(trades, times, interval)
     volume_profiles.append(volume_profile)
 
-datelist  = datelist[pre_day:]
+dates = dates[pre_day:]
 tickdatas = tickdatas[pre_day:]
 
 
-for date, tickdata, volume_profile in zip(datelist, tickdatas, volume_profiles):
+for date, tickdata, volume_profile in zip(dates, tickdatas, volume_profiles):
 
     if exchange == 'general':
         engine = GeneralExchange(tickdata).transaction_engine
@@ -86,8 +92,10 @@ for date, tickdata, volume_profile in zip(datelist, tickdatas, volume_profiles):
                 f.writelines(trainer.reward)
 
     elif method == 'linear':
-        agents = [Linear(side) for _ in range(len(envs))]
-        for i, agent, env in enumerate(zip(agents, envs)):
+        criterion = nn.MSELoss
+        optimizer = torch.optim.Adam
+        for i, env in enumerate(envs):
+            agent = Linear(env.observation_spcae_n, env.action_space_n, criterion, optimizer)
             trainer = EpisodicTraining(agent, 1000)
             modeldir = os.path.join(SAVEDIR, method, '%dtranches' % n, 'task%d' %i, 'best.pth')
             if os.path.exists(modeldir):
