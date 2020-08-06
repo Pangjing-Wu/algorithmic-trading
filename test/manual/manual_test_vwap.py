@@ -6,12 +6,12 @@ import torch
 import torch.nn as nn
 
 from utils.dataloader import load_tickdata, load_case
-from src.datasource.datatype.tickdata import TickData
-from src.exchange.stock import GeneralExchange
-from src.strategies.vwap.env import GenerateTranches
-from src.strategies.vwap.agent import Baseline, Linear
-from src.strategies.vwap.train import BaselineTraining, EpisodicTraining
-from src.utils.statistic import group_trade_volume_by_time
+from datasource.datatype.tickdata import TickData
+from exchange.stock import GeneralExchange
+from strategies.vwap.env import GenerateTranches
+from strategies.vwap.agent import Baseline, Linear
+from strategies.vwap.train import BaselineTraining, EpisodicTraining
+from utils.statistic import group_trade_volume_by_time
 
 
 def state2dict(state) -> dict:

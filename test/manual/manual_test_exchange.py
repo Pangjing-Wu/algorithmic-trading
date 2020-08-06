@@ -4,8 +4,8 @@ import traceback
 sys.path.append('./')
 sys.path.append('./test')
 
-from src.datasource.datatype import TickData
-from src.exchange.stock import GeneralExchange
+from datasource.datatype import TickData
+from exchange.stock import GeneralExchange
 from utils.dataloader import load_tickdata, load_case
 
 def test_transaction(transaction_engine, params, reportdir):

@@ -4,7 +4,7 @@ sys.path.append('./')
 from tqdm import tqdm
 import pandas as pd
 
-from src.utils.errors import *
+from utils.errors import *
 
 
 argmax = lambda a: [i for i, val in enumerate(a) if (val == max(a))][0]

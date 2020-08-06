@@ -13,8 +13,8 @@ sys.path.append('D:\\python\\my程序\\have_wait_t_20200728\\algorithmic-trading
 order1和order2均成交了才可以发下一个order1'和order2'
 '''
 
-from src.datasource.datatype import TickData
-from src.exchange.stock import GeneralExchange
+from datasource.datatype import TickData
+from exchange.stock import GeneralExchange
 from dataloader import load_tickdata, load_case
 
 

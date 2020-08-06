@@ -5,8 +5,8 @@ sys.path.append('./test')
 
 import pytest
 
-from src.datasource.datatype import TickData
-from src.exchange.stock import GeneralExchange
+from datasource.datatype import TickData
+from exchange.stock import GeneralExchange
 from utils.dataloader import load_tickdata, load_case
 
 

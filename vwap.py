@@ -20,13 +20,13 @@ import os
 import torch
 import torch.nn as nn
 
-from src.datasource.source.h2 import load_from_h2
-from src.datasource.datatype.tickdata import TickData
-from src.utils.statistic import group_trade_volume_by_time, tranche_num
-from src.exchange.stock import GeneralExchange
-from src.strategies.vwap.agent import Baseline, Linear
-from src.strategies.vwap.env import GenerateTranches
-from src.strategies.vwap.train import BaselineTraining, EpisodicTraining
+from datasource.source.h2 import load_from_h2
+from datasource.datatype.tickdata import TickData
+from utils.statistic import group_trade_volume_by_time, tranche_num
+from exchange.stock import GeneralExchange
+from strategies.vwap.agent import Baseline, Linear
+from strategies.vwap.env import GenerateTranches
+from strategies.vwap.train import BaselineTraining, EpisodicTraining
 
 
 stock = '000001'
