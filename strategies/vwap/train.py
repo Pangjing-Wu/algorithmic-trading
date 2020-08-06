@@ -3,20 +3,17 @@ import random
 
 import torch
 
+
 class BaselineTraining(object):
 
     def __init__(self, agent, action_map:callable):
         self._agent = agent
         self._actions = list()
         self._action_map = action_map
-        self._metric = dict(vwap=None, market_vwap=None)
 
     @property
     def action_track(self):
         return self._actions
-
-    def evaluate(self):
-        return self._metric
 
     def train(self, env):
         self._actions = list()
@@ -27,8 +24,6 @@ class BaselineTraining(object):
             action = a if self._action_map == None else self._action_map(a)
             s, r, final = env.step(action)
             self._actions.append(a)
-        self._metric['vwap'] = env.vwap
-        self._metric['market_vwap'] = env.market_vwap
 
 
 class EpisodicTraining(object):
@@ -42,16 +37,13 @@ class EpisodicTraining(object):
         self._criterion  = self._agent.criterion()
         self._optimizer  = self._agent.optimizer(self._agent.parameters(), lr=0.1)
         self._action_map = action_map
-        self._metric     = dict(vwap=None, market_vwap=None)
     
     @property
     def parameters(self):
         return self._agent.state_dict()
 
-    def evaluate(self):
-        return self._metric
-
-    def train(self, env, episodes, savedir):
+    def train(self, env, episodes:int, savedir=None, metrics=None):
+        savedir = os.path.join(os.getcwd(), 'temp_train.pth') if savedir == None else savedir
         best_reward = None
         epsilon = self._epsilon
 
@@ -83,13 +75,18 @@ class EpisodicTraining(object):
                 if final is True:
                     epsilon *= self._delta_eps
                     break
+            
+            if metrics == None:
+                print('Episode %d, reward=%.5f.' % (episode, reward))
+            else:
+                print('Episode %d, reward=%.5f, metrics=%s.' % (episode, reward, metrics()))
 
             if best_reward == None or best_reward < reward:
                 best_reward = reward
                 self.save(savedir)
-                print('get best model at %d episode with reward %.5f, saved.' % (episode, best_reward))
-                self._metric['vwap'] = env.vwap
-                self._metric['market_vwap'] = env.market_vwap
+                print('Get best model with reward %.5f! saved.\n' % best_reward)
+            else:
+                print('GG! current reward is %.5f, best reward is %.5f.\n' % (reward, best_reward))
 
     def pre_train(self, env, actions:list, episodes:int):
         if len(actions) != len(env)-1:
