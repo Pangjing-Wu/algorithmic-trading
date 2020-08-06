@@ -48,7 +48,7 @@ level_spcae = ['bid1', 'ask1']
 SAVEDIR = './results'
 SAVEDIR = os.path.join(SAVEDIR, stock)
 
-action_map = lambda a: [1, 0, 0] if a == len(level_spcae) else [1, a, 1]
+action_map = lambda a: [1, 0, 0] if a == len(level_spcae) else [1, a, 100]
 
 dates = [f[:8] for f in os.listdir(dbdir) if f[-5:] == 'h2.db']
 
