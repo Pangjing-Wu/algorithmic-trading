@@ -21,7 +21,7 @@ import torch
 import torch.nn as nn
 
 from datasource.source.h2 import load_from_h2
-from datasource.datatype.tickdata import TickData
+from datasource.datatype import TickData
 from utils.statistic import group_trade_volume_by_time, tranche_num
 from exchange.stock import GeneralExchange
 from strategies.vwap.agent import Baseline, Linear
