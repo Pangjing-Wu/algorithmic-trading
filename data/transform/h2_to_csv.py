@@ -5,7 +5,7 @@ import sys
 import pandas as pd
 
 sys.path.append('./')
-from datasource.source.h2 import load_from_h2
+from data.source.h2 import load_from_h2
 
 
 def h2_to_csv(stockdir, filedir, savedir, user, psw, **h2_kwargs):

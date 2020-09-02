@@ -7,7 +7,7 @@ sys.path.append('./test')
 import pandas as pd
 import matplotlib.pyplot as plt
 from utils.dataloader import load_tickdata, load_case
-from datasource.datatype import TickData
+from data.datatype import TickData
 from utils.statastic import *
 
 quote, trade = load_tickdata(stock='000001', date='20140704')

@@ -5,7 +5,7 @@ import sys
 sys.path.append('D:\\python\my程序\\2020_8_6\\algorithmic-trading-master\\datasource')
 sys.path.append('D:\\python\my程序\\2020_8_6\\algorithmic-trading-master\\test\\utils')
 print(sys.path)
-from datatype.tickdata import TickData
+from datatype import TickData
 #from exchange.stock import GeneralExchange
 from dataloader import load_tickdata, load_case
 

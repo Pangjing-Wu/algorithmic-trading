@@ -4,7 +4,7 @@ import traceback
 sys.path.append('./')
 sys.path.append('./test')
 
-from datasource.datatype import TickData
+from data.datatype import TickData
 from exchange.stock import GeneralExchange
 from utils.dataloader import load_tickdata, load_case
 

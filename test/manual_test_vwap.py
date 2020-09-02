@@ -6,7 +6,7 @@ import torch
 import torch.nn as nn
 
 from utils.dataloader import load_tickdata, load_case
-from datasource.datatype.tickdata import TickData
+from datasource.datatype import TickData
 from exchange.stock import GeneralExchange
 from strategies.vwap.env import GenerateTranches, HardConstrainTranche
 from strategies.vwap.agent import Baseline, Linear

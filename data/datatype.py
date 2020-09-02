@@ -7,9 +7,6 @@ class TickData(object):
     def __init__(self, quote: pd.DataFrame, trade: pd.DataFrame):
         self._quote = quote
         self._trade = trade
-    
-    def __len__(self):
-        return (self._quote.shape[0] + self._trade.shape[0])
 
     @property
     def quote_timeseries(self):
