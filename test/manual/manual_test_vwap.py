@@ -42,4 +42,5 @@ agent = Linear(env.observation_space_n, env.action_space_n,
                criterion = nn.MSELoss, optimizer = torch.optim.Adam)
 trainer = EpisodicTraining(agent, action_map=action_encoder)
 
-trainer.train(env, 100, 'test/results/temp/temp.pth', metrics=True)
+trainer.train(env, 1000, 'test/results/temp/temp.pth', metrics=env.metrics)
+# nohup python -u ./test/manual/manual_test_vwap.py 2>&1 > ./test/manual/1000e.log &
