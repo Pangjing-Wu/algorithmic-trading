@@ -11,6 +11,7 @@ from utils.errors import *
 argmax = lambda a: [i for i, val in enumerate(a) if (val == max(a))][0]
 dotmut = lambda x, y: sum([a * b for a, b in zip(x, y)])
 
+
 class BasicTranche(object):
 
     def __init__(self, tickdata, task:pd.Series, transaction_engine:callable, level_space:list, verbose=0):
@@ -171,8 +172,8 @@ class HardConstrainTranche(BasicTranche):
         if sum(self._filled['size']) == self._task['goal']:
             self._final = True
 
-        # if filled rate is less than 100%, issue remain orders as market order.
-        if self._final and sum(self._filled['size']) < self._task['goal']:
+        # issue remaining orders as market order at the end.
+        if self._final == True and sum(self._filled['size']) < self._task['goal']:
             market_order_level = 'ask1' if action[0] == 0 else 'bid1'
             self._filled['price'].append(self._data.get_quote(self._t)[market_order_level].iloc[0])
             self._filled['size'].append(self._task['goal'] - sum(self._filled['size']))
@@ -183,7 +184,11 @@ class HardConstrainTranche(BasicTranche):
         if self._final == True and self._verbose > 0:
             self._tqdm.close()
 
-        reward = self.vwap - self.market_vwap
+        if self._final == True:
+            reward = self.vwap - self.market_vwap
+        else:
+            reward = 0
+
         prices = self._data.get_quote(self._t)[self._level_space].iloc[0].values.tolist()
         state  = [
             self._t / 1000,
@@ -191,7 +196,6 @@ class HardConstrainTranche(BasicTranche):
             self._task['goal'], sum(self._filled['size']),
             *prices
             ]
-
         return (state, reward, self._final)
 
 
