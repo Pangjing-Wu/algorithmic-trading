@@ -19,11 +19,17 @@ class BaselineTraining(object):
         self._actions = list()
         s = env.reset()
         final = env.is_final()
+        reward = 0
         while not final:
             a = self._agent(s)
             action = a if self._action_map == None else self._action_map(a)
             s, r, final = env.step(action)
             self._actions.append(a)
+            reward += r
+        print('Baseline reward is %.5f.\n' % reward)
+        
+    def test(self, env):
+        self.train(env)
 
 
 class EpisodicTraining(object):
@@ -48,7 +54,7 @@ class EpisodicTraining(object):
         epsilon = self._epsilon
         for episode in range(episodes):
             s = env.reset()
-            final = False
+            final = env.is_final()
             reward = 0
             while not final:
                 Q = self._agent(s)
