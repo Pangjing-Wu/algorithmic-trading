@@ -2,20 +2,20 @@ import numpy as np
 
 class GeneralExchange(object):
 
-    def __init__(self, tickdata, wait_t):
+    def __init__(self, tickdata, wait_trade):
         '''
         arguments:
         ----------
             tickdata: TickData, tick-level data.
-            wait_t: int, waiting number of trade records before
+            wait_trade: int, waiting number of trade records before
                 transaction.
         '''
 
-        if wait_t < 0:
-            raise KeyError("wait_t must greater than or equal to 0.")
+        if wait_trade < 0:
+            raise KeyError("wait_trade must greater than or equal to 0.")
 
         self._data = tickdata
-        self._wait_t = wait_t
+        self._wait_trade = wait_trade
         self._next_level = lambda level: level[:3] + str(int(level[3:]) + 1)
     
     def transaction_engine(self, order)->tuple:
@@ -40,7 +40,7 @@ class GeneralExchange(object):
         filled = {'time':[], 'price': [], 'size': []}
 
         if order['pos'] == -1:
-            order['pos'] = self._wait_t
+            order['pos'] = self._wait_trade
 
         order_level = quote[quote['price'] == order['price']]
         
