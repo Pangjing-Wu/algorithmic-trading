@@ -19,11 +19,17 @@ class BaselineTraining(object):
         self._actions = list()
         s = env.reset()
         final = env.is_final()
+        reward = 0
         while not final:
             a = self._agent(s)
             action = a if self._action_map == None else self._action_map(a)
             s, r, final = env.step(action)
             self._actions.append(a)
+            reward += r
+        print('Baseline reward is %.5f.\n' % reward)
+        
+    def test(self, env):
+        self.train(env)
 
 
 class EpisodicTraining(object):
@@ -48,7 +54,7 @@ class EpisodicTraining(object):
         epsilon = self._epsilon
         for episode in range(episodes):
             s = env.reset()
-            final = False
+            final = env.is_final()
             reward = 0
             while not final:
                 Q = self._agent(s)
@@ -57,8 +63,8 @@ class EpisodicTraining(object):
                     a = random.sample(env.action_space, 1)[0]
                 else: 
                     a = torch.argmax(Q).item()
-                a = a if self._action_map == None else self._action_map(a)
-                s1, r, final = env.step(a)
+                action = a if self._action_map == None else self._action_map(a)
+                s1, r, final = env.step(action)
                 reward += r
                 # calculate next state's Q-values.
                 Q1max = self._agent(s1).max()
@@ -101,8 +107,8 @@ class EpisodicTraining(object):
                         a = random.sample(env.action_space, 1)[0]
                     else: 
                         a = torch.argmax(Q).item()
-                    a = a if self._action_map == None else self._action_map(a)
-                    s1, r, final = env.step(a)
+                    action = a if self._action_map == None else self._action_map(a)
+                    s1, r, final = env.step(action)
                     reward += r
                     # calculate next state's Q-values.
                     Q1max = self._agent(s1).max()
@@ -117,7 +123,8 @@ class EpisodicTraining(object):
                     if final is True:
                         epsilon *= self._delta_eps
                         break
-            
+                rewards.append(reward)
+
             average_reward = sum(rewards) / len(rewards)
             print('Episode %d/%d: reward=%.5f.' % (episode, episodes, average_reward))
 
@@ -135,13 +142,11 @@ class EpisodicTraining(object):
             guides = iter(actions)
             s = env.reset()
             final = False
-            reward = 0
             while not final:
                 Q = self._agent(s)
                 a = next(guides)
-                a = a if self._action_map == None else self._action_map(a)
-                s1, r, final = env.step(a)
-                reward += r
+                action = a if self._action_map == None else self._action_map(a)
+                s1, r, final = env.step(action)
                 Q1max = self._agent(s1).max()
                 with torch.no_grad():
                     Q_target = Q.clone()
@@ -160,13 +165,11 @@ class EpisodicTraining(object):
                 guides = iter(action)
                 s = env.reset()
                 final = False
-                reward = 0
                 while not final:
                     Q = self._agent(s)
                     a = next(guides)
-                    a = a if self._action_map == None else self._action_map(a)
-                    s1, r, final = env.step(a)
-                    reward += r
+                    action = a if self._action_map == None else self._action_map(a)
+                    s1, r, final = env.step(action)
                     Q1max = self._agent(s1).max()
                     with torch.no_grad():
                         Q_target = Q.clone()

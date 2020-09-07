@@ -1,17 +1,21 @@
+import glob
+import os
 import sys
-sys.path.append('./')
-sys.path.append('./test')
 
+import pandas as pd
 import torch
 import torch.nn as nn
 
-from utils.dataloader import load_tickdata, load_case
-from datasource.datatype import TickData
+sys.path.append('./')
 from exchange.stock import GeneralExchange
-from strategies.vwap.env import GenerateTranches, HardConstrainTranche
 from strategies.vwap.agent import Baseline, Linear
+from strategies.vwap.env import GenerateTranches, HardConstrainTranche
 from strategies.vwap.train import BaselineTraining, EpisodicTraining
+from tickdata.datatype import TickData
 from utils.statistic import group_trade_volume_by_time
+
+
+action_encoder = lambda a: [1, 0, 0] if a == 2 else [1, a, 100]
 
 
 def state2dict(state) -> dict:
@@ -22,25 +26,36 @@ def state2dict(state) -> dict:
     return state_dict
 
 
-quote, trade = load_tickdata(stock='000001', date='20140704')
-data = TickData(quote, trade)
-trade = data.get_trade()
-time = [34200000, 41400000, 46800000, 53700000]
-env_params = dict(
-    tickdata = data,
-    level_space = ['bid1', 'ask1'],
-    transaction_engine = GeneralExchange(data, 3).transaction_engine,
-)
+stock         = '600000'
+goals         = 20000   # share, goals per days. 
+pre_days      = 20
+time_range    = [34200000, 41400000, 46800000, 53700000]
+time_interval = 1800000
+tranche_id    = 0
 
-volume_profile = group_trade_volume_by_time(trade, time, 1800000)
+quotefiles = sorted(glob.glob('./data/%s/quote/*.csv' % stock))
+tradefiles = sorted(glob.glob('./data/%s/trade/*.csv' % stock))
 
-action_encoder = lambda a: [1, 0, 0] if a == 2 else [1, a, 100]
+if len(quotefiles) != len(tradefiles):
+    raise Exception('quote files do not match trade files.')
 
-env = GenerateTranches(HardConstrainTranche, 200000, volume_profile, **env_params)[0]
+quotes = [pd.read_csv(file) for file in quotefiles]
+trades = [pd.read_csv(file) for file in tradefiles]
 
-agent = Linear(env.observation_space_n, env.action_space_n,
-               criterion = nn.MSELoss, optimizer = torch.optim.Adam)
+datas = [TickData(quote, trade) for quote, trade in zip(quotes, trades)]
+
+env_params     = list()
+volume_profiles = list()
+for i in range(pre_days, len(trades)):
+    param  = dict(tickdata = datas[i], level_space = ['bid1', 'ask1'], transaction_engine = GeneralExchange(datas[i], 3).transaction_engine)
+    profile = group_trade_volume_by_time(trades[i-pre_days:i], time_range, time_interval)
+    env_params.append(param)
+    volume_profiles.append(profile)
+
+envs = [GenerateTranches(HardConstrainTranche, goals, profile, **param)[tranche_id] for profile, param in zip(volume_profiles, env_params)]
+
+agent = Linear(envs[0].observation_space_n, envs[0].action_space_n, criterion = nn.MSELoss, optimizer = torch.optim.Adam)
 trainer = EpisodicTraining(agent, action_map=action_encoder)
+trainer.sequence_train(envs, 100, 'test/results/temp/temp.pth')
 
-trainer.train(env, 1000, 'test/results/temp/temp.pth', metrics=env.metrics)
-# nohup python -u ./test/manual/manual_test_vwap.py 2>&1 > ./test/manual/1000e.log &
+# nohup python -u ./test/manual/manual_test_vwap.py 2>&1 > ./test/manual/100e.log &
