@@ -123,7 +123,8 @@ class EpisodicTraining(object):
                     if final is True:
                         epsilon *= self._delta_eps
                         break
-            
+                rewards.append(reward)
+
             average_reward = sum(rewards) / len(rewards)
             print('Episode %d/%d: reward=%.5f.' % (episode, episodes, average_reward))
 
@@ -141,13 +142,11 @@ class EpisodicTraining(object):
             guides = iter(actions)
             s = env.reset()
             final = False
-            reward = 0
             while not final:
                 Q = self._agent(s)
                 a = next(guides)
                 action = a if self._action_map == None else self._action_map(a)
                 s1, r, final = env.step(action)
-                reward += r
                 Q1max = self._agent(s1).max()
                 with torch.no_grad():
                     Q_target = Q.clone()
@@ -166,13 +165,11 @@ class EpisodicTraining(object):
                 guides = iter(action)
                 s = env.reset()
                 final = False
-                reward = 0
                 while not final:
                     Q = self._agent(s)
                     a = next(guides)
                     action = a if self._action_map == None else self._action_map(a)
                     s1, r, final = env.step(action)
-                    reward += r
                     Q1max = self._agent(s1).max()
                     with torch.no_grad():
                         Q_target = Q.clone()
