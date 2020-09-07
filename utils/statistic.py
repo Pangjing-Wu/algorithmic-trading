@@ -14,26 +14,26 @@ def group_trade_by_price(trade:pd.DataFrame)->pd.DataFrame:
 
 
 def group_trade_volume_by_time(trades:Union[pd.DataFrame, List[pd.DataFrame]],
-                               time:List[int], interval:int=0) -> pd.DataFrame:
+                               time_range:List[int], interval:int=0) -> pd.DataFrame:
     
     volumes = {'start':[], 'end':[], 'volume':[]}
 
-    if len(time) < 2 and len(time) % 2 != 0:
+    if len(time_range) < 2 and len(time_range) % 2 != 0:
         raise KeyError("argument time should have 2 or multiples of 2 elements.")
 
     trades = [trades] if type(trades) == pd.DataFrame else trades
     
-    for i in range(0, len(time), 2):
+    for i in range(0, len(time_range), 2):
         
         if interval > 0:
-            time_slices = list(range(time[i], time[i+1], interval))
+            time_slices = list(range(time_range[i], time_range[i+1], interval))
         elif interval == 0:
             time_slices = [trades[0]['time'].iloc[0]]
         else:
             raise KeyError('interval must not be negative.')
 
-        if time_slices[-1] != time[i+1]:
-            time_slices.append(time[i+1])
+        if time_slices[-1] != time_range[i+1]:
+            time_slices.append(time_range[i+1])
 
         for j in range(len(time_slices) - 1):
             t0 = time_slices[j]
@@ -51,17 +51,17 @@ def group_trade_volume_by_time(trades:Union[pd.DataFrame, List[pd.DataFrame]],
     return pd.DataFrame(volumes)
 
 
-def tranche_num(time:List[int], interval):
+def tranche_num(time_range:List[int], interval):
 
-    if len(time) < 2 and len(time) % 2 != 0:
+    if len(time_range) < 2 and len(time_range) % 2 != 0:
         raise KeyError("argument time should have 2 or multiples of 2 elements.")
 
     if interval == 0:
         num = 1
     elif interval > 0:
         num = 0
-        for i in range(0, len(time), 2):
-            timelist = list(range(time[i], time[i+1], interval))
+        for i in range(0, len(time_range), 2):
+            timelist = list(range(time_range[i], time_range[i+1], interval))
             num += len(timelist)
     else:
         raise KeyError('interval must not be negative.')
