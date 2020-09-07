@@ -27,7 +27,7 @@ class BaselineTraining(object):
             self._actions.append(a)
             reward += r
         print('Baseline reward is %.5f.\n' % reward)
-        
+
     def test(self, env):
         self.train(env)
 
@@ -55,7 +55,7 @@ class EpisodicTraining(object):
         for episode in range(episodes):
             reward = self._train_loop(env, epsilon)
             epsilon *= self._delta_eps
-            print('Episode %d/%d: reward=%.5f.' % (episode, episodes, reward))
+            print('Episode %d/%d: reward=%.5f.' % (episode+1, episodes, reward))
             if best_reward == None or best_reward < reward:
                 best_reward = reward
                 self.save(savedir)
@@ -74,7 +74,7 @@ class EpisodicTraining(object):
                 rewards.append(reward)
                 epsilon *= self._delta_eps
             average_reward = sum(rewards) / len(rewards)
-            print('Episode %d/%d: reward=%.5f.' % (episode, episodes, average_reward))
+            print('Episode %d/%d: reward=%.5f.' % (episode+1, episodes, average_reward))
             if best_reward == None or best_reward < average_reward:
                 best_reward = average_reward
                 self.save(savedir)
