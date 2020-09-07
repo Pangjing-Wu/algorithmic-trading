@@ -58,4 +58,4 @@ agent = Linear(envs[0].observation_space_n, envs[0].action_space_n, criterion = 
 trainer = EpisodicTraining(agent, action_map=action_encoder)
 trainer.sequence_train(envs, 1000, 'test/results/temp/temp.pth')
 
-# nohup python -u ./test/manual_test_vwap.py 2>&1 > ./test/100e.log &
+# nohup python -u ./test/manual_test_vwap.py 2>&1 > ./test/1000e.log &
