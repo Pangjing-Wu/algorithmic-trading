@@ -32,4 +32,12 @@ def h2_to_csv(stocklistdir, h2dir, savedir, user, psw, **h2_kwargs):
 
 
 if __name__ == "__main__":
-    h2_to_csv('./stocklist', '/Volumes/data/201406', '/Volumes/data/processed', 'cra001', 'cra001')
+    params = dict(
+        stocklistdir='./stocklist',
+        h2dir='/data/al2',
+        savedir='/data/al2/csv',
+        user='cra001',
+        psw='cra001',
+        port='8082'
+    )
+    h2_to_csv(**params)
