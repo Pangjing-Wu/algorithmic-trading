@@ -56,6 +56,6 @@ envs = [GenerateTranches(HardConstrainTranche, goals, profile, **param)[tranche_
 
 agent = Linear(envs[0].observation_space_n, envs[0].action_space_n, criterion = nn.MSELoss, optimizer = torch.optim.Adam)
 trainer = EpisodicTraining(agent, action_map=action_encoder)
-trainer.sequence_train(envs, 100, 'test/results/temp/temp.pth')
+trainer.sequence_train(envs, 1000, 'test/results/temp/temp.pth')
 
-# nohup python -u ./test/manual/manual_test_vwap.py 2>&1 > ./test/manual/100e.log &
+# nohup python -u ./test/manual_test_vwap.py 2>&1 > ./test/100e.log &
