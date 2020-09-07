@@ -63,8 +63,8 @@ class EpisodicTraining(object):
                     a = random.sample(env.action_space, 1)[0]
                 else: 
                     a = torch.argmax(Q).item()
-                a = a if self._action_map == None else self._action_map(a)
-                s1, r, final = env.step(a)
+                action = a if self._action_map == None else self._action_map(a)
+                s1, r, final = env.step(action)
                 reward += r
                 # calculate next state's Q-values.
                 Q1max = self._agent(s1).max()
@@ -107,8 +107,8 @@ class EpisodicTraining(object):
                         a = random.sample(env.action_space, 1)[0]
                     else: 
                         a = torch.argmax(Q).item()
-                    a = a if self._action_map == None else self._action_map(a)
-                    s1, r, final = env.step(a)
+                    action = a if self._action_map == None else self._action_map(a)
+                    s1, r, final = env.step(action)
                     reward += r
                     # calculate next state's Q-values.
                     Q1max = self._agent(s1).max()
@@ -145,8 +145,8 @@ class EpisodicTraining(object):
             while not final:
                 Q = self._agent(s)
                 a = next(guides)
-                a = a if self._action_map == None else self._action_map(a)
-                s1, r, final = env.step(a)
+                action = a if self._action_map == None else self._action_map(a)
+                s1, r, final = env.step(action)
                 reward += r
                 Q1max = self._agent(s1).max()
                 with torch.no_grad():
@@ -170,8 +170,8 @@ class EpisodicTraining(object):
                 while not final:
                     Q = self._agent(s)
                     a = next(guides)
-                    a = a if self._action_map == None else self._action_map(a)
-                    s1, r, final = env.step(a)
+                    action = a if self._action_map == None else self._action_map(a)
+                    s1, r, final = env.step(action)
                     reward += r
                     Q1max = self._agent(s1).max()
                     with torch.no_grad():
