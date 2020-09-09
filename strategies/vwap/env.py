@@ -1,6 +1,5 @@
 import abc
 import sys
-sys.path.append('./')
 
 from tqdm import tqdm
 import pandas as pd
@@ -14,11 +13,11 @@ dotmut = lambda x, y: sum([a * b for a, b in zip(x, y)])
 
 class BasicTranche(object):
 
-    def __init__(self, tickdata, task:pd.Series, transaction_engine:callable, level_space:list, verbose=0):
+    def __init__(self, tickdata, task:pd.Series, transaction_engine:callable, level:int, verbose=0):
         self._data = tickdata
         self._task = task
         self._engine = transaction_engine
-        self._level_space = level_space
+        self._level_space = self._int2level(level)
         self._init = False
         self._final = False
         self._time = [t for t in self._data.quote_timeseries if t >= task['start'] and t < task['end']]
@@ -112,11 +111,21 @@ class BasicTranche(object):
         order = dict(time=time, side=side, price=price, size=action[2], pos=-1)
         return order
 
+    def _int2level(self, level:int):
+        if level not in range(1,11):
+            raise KeyError('level must be in range(1,10)')
+        level_space = list()
+        for i in range(level):
+            level_space.append('bid%d' % (i+1))
+            level_space.append('ask%d' % (i+1))
+        return level_space
+
 
 class HardConstrainTranche(BasicTranche):
     
-    def __init__(self, tickdata, task:pd.Series, transaction_engine:callable, level_space:list, verbose=0):
-        super().__init__(tickdata, task, transaction_engine, level_space, verbose)
+    def __init__(self, tickdata, task:pd.Series, transaction_engine:callable, level:int, verbose=0):
+        super().__init__(tickdata=tickdata, task=task, transaction_engine=transaction_engine,
+                         level=level, verbose=verbose)
 
     @property
     def observation_space_n(self):
