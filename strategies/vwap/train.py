@@ -48,29 +48,35 @@ class EpisodicTraining(object):
     def parameters(self):
         return self._agent.state_dict()
 
-    def train(self, env, episodes:int, savedir=None):
-        savedir = os.path.join(os.getcwd(), 'temp_train.pth') if savedir == None else savedir
-        best_reward = None
-        epsilon = self._epsilon
-        for episode in range(episodes):
-            reward = self._train_loop(env, epsilon)
-            epsilon *= self._delta_eps
-            print('Episode %d/%d: reward=%.5f.' % (episode+1, episodes, reward))
-            if best_reward == None or best_reward < reward:
-                best_reward = reward
-                self.save(savedir)
-                print('Get best model with reward %.5f! saved.\n' % best_reward)
-            else:
-                print('GG! current reward is %.5f, best reward is %.5f.\n' % (reward, best_reward))
-
-    def sequence_train(self, envs:list, episodes:int, savedir=None):
+    def train(self, envs:list, episodes=100, savedir=None):
         savedir = os.path.join(os.getcwd(), 'temp_train.pth') if savedir == None else savedir
         best_reward = None
         epsilon = self._epsilon
         for episode in range(episodes):
             rewards = list()
             for env in envs:
-                reward = self._train_loop(env, epsilon)
+                s = env.reset()
+                final = False
+                reward = 0
+                while not final:
+                    Q = self._agent(s)
+                    # select action by epsilon greedy
+                    if random.random() < epsilon:
+                        a = random.sample(env.action_space, 1)[0]
+                    else: 
+                        a = torch.argmax(Q).item()
+                    action = a if self._action_map == None else self._action_map(a)
+                    s1, r, final = env.step(action)
+                    reward += r
+                    Q1max = self._agent(s1).max()
+                    with torch.no_grad():
+                        Q_target = Q.clone()
+                        Q_target[a] = r + self._gamma * Q1max
+                    loss = self._criterion(Q, Q_target)
+                    self._optimizer.zero_grad()
+                    loss.backward()
+                    self._optimizer.step()
+                    s = s1
                 rewards.append(reward)
                 epsilon *= self._delta_eps
             average_reward = sum(rewards) / len(rewards)
@@ -82,29 +88,7 @@ class EpisodicTraining(object):
             else:
                 print('GG! current reward is %.5f, best reward is %.5f.\n' % (reward, best_reward))
 
-    def pre_train(self, env, actions:list, episodes:int):
-        if len(actions) != len(env)-1:
-            raise KeyError("the length of action and environment are not matching.")
-        for _ in range(episodes):
-            guides = iter(actions)
-            s = env.reset()
-            final = False
-            while not final:
-                Q = self._agent(s)
-                a = next(guides)
-                action = a if self._action_map == None else self._action_map(a)
-                s1, r, final = env.step(action)
-                Q1max = self._agent(s1).max()
-                with torch.no_grad():
-                    Q_target = Q.clone()
-                    Q_target[a] = r +  self._gamma * Q1max
-                loss = self._criterion(Q, Q_target)
-                self._optimizer.zero_grad()
-                loss.backward()
-                self._optimizer.step()
-                s = s1
-
-    def sequence_pre_train(self, envs:list, actions:list, episodes:int):
+    def pre_train(self, envs:list, actions:list, episodes:int):
         for _ in range(episodes):
             for env, action in zip(envs, actions):
                 if len(action) != len(env)-1:
@@ -144,28 +128,3 @@ class EpisodicTraining(object):
     def save(self, savedir):
         os.makedirs(os.path.dirname(savedir), exist_ok=True)
         torch.save(self._agent.state_dict(), savedir)
-
-    def _train_loop(self, env, epsilon):
-        s = env.reset()
-        final = False
-        reward = 0
-        while not final:
-            Q = self._agent(s)
-            # select action by epsilon greedy
-            if random.random() < epsilon:
-                a = random.sample(env.action_space, 1)[0]
-            else: 
-                a = torch.argmax(Q).item()
-            action = a if self._action_map == None else self._action_map(a)
-            s1, r, final = env.step(action)
-            reward += r
-            Q1max = self._agent(s1).max()
-            with torch.no_grad():
-                Q_target = Q.clone()
-                Q_target[a] = r + self._gamma * Q1max
-            loss = self._criterion(Q, Q_target)
-            self._optimizer.zero_grad()
-            loss.backward()
-            self._optimizer.step()
-            s = s1
-        return reward
