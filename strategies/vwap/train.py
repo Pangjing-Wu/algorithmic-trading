@@ -82,13 +82,13 @@ class EpisodicTraining(object):
                 epsilon *= self._delta_eps
             val_reward   = self.test(envs[-1])
             train_reward = sum(rewards) / len(rewards)
-            print('Episode %d/%d: train reward=%.5f, val reward=%.5f.' % (episode+1, episodes, train_reward, val_reward))
+            print('Episode %d/%d: train reward = %.5f, validation reward = %.5f.' % (episode+1, episodes, train_reward, val_reward))
             if best_reward == None or best_reward < val_reward:
                 best_reward = val_reward
                 self.save(savedir)
                 print('Get best model with reward %.5f! saved.\n' % best_reward)
             else:
-                print('GG! current reward is %.5f, best reward is %.5f.\n' % (reward, best_reward))
+                print('GG! current reward is %.5f, best reward is %.5f.\n' % (val_reward, best_reward))
 
     def pre_train(self, envs:list, actions:list, episodes:int):
         for _ in range(episodes):
