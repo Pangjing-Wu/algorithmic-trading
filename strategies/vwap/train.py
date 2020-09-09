@@ -48,13 +48,14 @@ class EpisodicTraining(object):
     def parameters(self):
         return self._agent.state_dict()
 
-    def train(self, envs:list, episodes=100, savedir=None):
-        savedir = os.path.join(os.getcwd(), 'temp_train.pth') if savedir == None else savedir
+    def train(self, envs:list, episodes:int, savedir:str):
+        if len(envs) < 2:
+            raise KeyError('Too less environments to train, at least need 2.') 
         best_reward = None
         epsilon = self._epsilon
         for episode in range(episodes):
             rewards = list()
-            for env in envs:
+            for env in envs[:-1]:
                 s = env.reset()
                 final = False
                 reward = 0
@@ -79,10 +80,11 @@ class EpisodicTraining(object):
                     s = s1
                 rewards.append(reward)
                 epsilon *= self._delta_eps
-            average_reward = sum(rewards) / len(rewards)
-            print('Episode %d/%d: reward=%.5f.' % (episode+1, episodes, average_reward))
-            if best_reward == None or best_reward < average_reward:
-                best_reward = average_reward
+            val_reward   = self.test(envs[-1])
+            train_reward = sum(rewards) / len(rewards)
+            print('Episode %d/%d: train reward=%.5f, val reward=%.5f.' % (episode+1, episodes, train_reward, val_reward))
+            if best_reward == None or best_reward < val_reward:
+                best_reward = val_reward
                 self.save(savedir)
                 print('Get best model with reward %.5f! saved.\n' % best_reward)
             else:
