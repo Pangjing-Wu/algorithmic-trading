@@ -1,28 +1,24 @@
 import argparse
 
 def parse_args(strategy):
-  parser = argparse.ArgumentParser(description= 'few-shot script %s' %(strategy))
-  parser.add_argument('--dataset', default='multi', help='miniImagenet/cub/cars/places/plantae, specify multi for training with multiple domains')
-  parser.add_argument('--testset', default='cub', help='cub/cars/places/plantae, valid only when dataset=multi')
-  parser.add_argument('--model', default='ResNet10', help='model: Conv{4|6} / ResNet{10|18|34}') # we use ResNet10 in the paper
-  parser.add_argument('--method', default='baseline',   help='baseline/baseline++/protonet/matchingnet/relationnet{_softmax}/gnnnet')
-  parser.add_argument('--train_n_way' , default=5, type=int,  help='class num to classify for training')
-  parser.add_argument('--test_n_way'  , default=5, type=int,  help='class num to classify for testing (validation) ')
-  parser.add_argument('--n_shot'      , default=5, type=int,  help='number of labeled data in each class, same as n_support')
-  parser.add_argument('--train_aug'   , action='store_true',  help='perform data augmentation or not during training ')
-  parser.add_argument('--name'        , default='tmp', type=str, help='')
-  parser.add_argument('--save_dir'    , default='./output', type=str, help='')
-  parser.add_argument('--data_dir'    , default='./filelists', type=str, help='')
+	parser = argparse.ArgumentParser('algorithmic trading')
+	if strategy == 'vwap':
+		parser.add_argument('--env', type=str, help='uncompleted, specify environment type')
+		parser.add_argument('--mode', type=str, help='train/test, specify running mode')
+		parser.add_argument('--stock', type=str, help='stock code')
+		parser.add_argument('--side', default='buyer', type=str, help='buyer/seller, transaction side')
+		parser.add_argument('--goal', default=20000, type=int, help='total sahres of trading goal per day')
+		parser.add_argument('--agent', default='linear', help='baseline/linear/LSTM, backbone of agent')
+		parser.add_argument('--level', default=1, type=int, help='[1,10], available bid/ask level in action space')
+		parser.add_argument('--episodes', default=400, type=int, help='episode number of training')
+		parser.add_argument('--pre_days', default=20, type=int, help='data of pre n days for calculating volume profile')
+		parser.add_argument('--exchange' , default='general', type=str, help='specify exchange')
+		parser.add_argument('--time_range', default=[34200000, 41400000, 46800000, 53700000], type=int, nargs='+', help='legal time range of transaction')
+		parser.add_argument('--interval'  , default=1800000, type=int, help='time length of each tranche')
+		parser.add_argument('--tranche_id', default=0, type=int, help='specify tranche of each day')
+		parser.add_argument('--overwrite', action='store_true', help='train a new model and overwrite existed')
+		parser.add_argument('--save_dir', '--model_dir', default='./results', type=str, help='direction of load/save models')
+	else:
+		raise ValueError('Unknown strategy.')
 
-  if strategy == 'vwap':
-    parser.add_argument('--num_classes' , default=200, type=int, help='total number of classes in softmax, only used in baseline')
-    parser.add_argument('--save_freq'   , default=25, type=int, help='Save frequency')
-    parser.add_argument('--start_epoch' , default=0, type=int,help ='Starting epoch')
-    parser.add_argument('--stop_epoch'  , default=400, type=int, help ='Stopping epoch')
-    parser.add_argument('--resume'      , default='', type=str, help='continue from previous trained model with largest epoch')
-    parser.add_argument('--resume_epoch', default=-1, type=int, help='')
-    parser.add_argument('--warmup'      , default='gg3b0', type=str, help='continue from baseline, neglected if resume is true')
-  else:
-    raise ValueError('Unknown strategy.')
-
-  return parser.parse_args()
+	return parser.parse_args()
