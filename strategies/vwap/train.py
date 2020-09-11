@@ -15,7 +15,7 @@ class BaselineTraining(object):
     def action_track(self):
         return self._actions
 
-    def train(self, env):
+    def test(self, env):
         self._actions = list()
         s = env.reset()
         final = env.is_final()
@@ -27,9 +27,6 @@ class BaselineTraining(object):
             self._actions.append(a)
             reward += r
         print('Baseline reward is %.5f.\n' % reward)
-
-    def test(self, env):
-        self.train(env)
 
 
 class EpisodicTraining(object):
