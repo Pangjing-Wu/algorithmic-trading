@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 
 
+INF = 0x7FFFFFF
+
 class Baseline(object):
     
     def __init__(self, side: str, threshold: int=0.1):
@@ -11,11 +13,11 @@ class Baseline(object):
 
     def __call__(self, state):
         '''
-        Arugment:
+        arugment:
         ---------
         state: list,
             elements consist of ['time', 'start', 'end', 'goal', 'filled'].
-        Return:
+        return:
         -------
         action: int.
         '''

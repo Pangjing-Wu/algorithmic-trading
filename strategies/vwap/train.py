@@ -26,7 +26,7 @@ class BaselineTraining(object):
             s, r, final = env.step(action)
             self._actions.append(a)
             reward += r
-        print('Baseline reward is %.5f.\n' % reward)
+        return reward
 
 
 class EpisodicTraining(object):

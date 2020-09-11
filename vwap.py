@@ -39,7 +39,21 @@ for i in range(arg.pre_days, len(trades)):
     env_params.append(param)
 envs = [GenerateTranches(HardConstrainTranche, arg.goal, profile, **param)[arg.tranche_id] for profile, param in zip(volume_profiles, env_params)]
 
-if arg.agent == 'linear':
+
+if arg.agent == 'baseline':
+    agent = Baseline(arg.side)
+    if arg.mode == 'train':
+        raise KeyError('Baseline only support test mode.')
+    elif arg.mode == 'test':
+        env_test = envs[-1]
+        trainer = BaselineTraining(agent, action_map=action_encoder)
+        reward  = trainer.test(env_test)
+        print('test reward = %.5f' % reward)
+        print('test metric = %s' % env_test.metrics())
+    else:
+        raise KeyError('argument mode must be test for running baseline.')
+
+elif arg.agent == 'linear':
     criterion = nn.MSELoss
     optimizer = torch.optim.Adam
     agent = Linear(envs[0].observation_space_n, envs[0].action_space_n, criterion=nn.MSELoss, optimizer=torch.optim.Adam)
@@ -64,5 +78,5 @@ if arg.agent == 'linear':
         raise KeyError('argument mode must be train or test.')
 else:
     raise KeyError('unknown agent')
-# nohup python -u vwap.py --mode train --env unspecified --agent linear --stock 600000 --side seller --tranche_id 0 > "./results/600000/linear/8-tranches/0-tranche.log"
-# python -u vwap.py --mode test --env unspecified --agent linear --stock 600000 --side seller --tranche_id 0
+# nohup python -u vwap.py --mode train --env unspecified --agent linear --stock 600000 --side sell --tranche_id 0 > "./results/600000/linear/8-tranches/0-tranche.log"
+# python -u vwap.py --mode test --env unspecified --agent linear --stock 600000 --side sell --tranche_id 0
