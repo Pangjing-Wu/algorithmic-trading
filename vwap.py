@@ -39,6 +39,8 @@ if arg.env == 'hardconstrain':
     env = HardConstrainTranche
 elif arg.env == 'histricalhardconstrain':
     env = HistoricalHardConstrainTranche
+    for param in env_params:
+        param['historical_quote_num'] = arg.hist_quote
 else:
     raise KeyError('unknown environment.')
 envs = [GenerateTranches(env, arg.goal, profile, **param)[arg.tranche_id] for profile, param in zip(volume_profiles, env_params)]
@@ -81,5 +83,5 @@ elif arg.agent == 'linear':
         raise KeyError('argument mode must be train or test.')
 else:
     raise KeyError('unknown agent')
-# nohup python -u vwap.py --mode train --env histricalhardconstrain --agent linear --stock 600000 --side sell --tranche_id 0 > "./results/600000/historicalhardconstrain/linear/8-tranches/0-tranche.log"
+# nohup python -u vwap.py --mode train --env histricalhardconstrain --agent linear --stock 600000 --side sell --tranche_id 0 2>&1 > "./results/600000/historicalhardconstrain/linear/8-tranches/0-tranche.log"
 # python -u vwap.py --mode test --env histricalhardconstrain --agent linear --stock 600000 --side sell --tranche_id 0
