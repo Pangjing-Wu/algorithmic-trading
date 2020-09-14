@@ -186,7 +186,7 @@ class HistoricalHardConstrainTranche(BasicTranche):
 
     @property
     def observation_space_n(self):
-        n = 5 + 20 * self._historical_quote_num
+        n = 5 + 40 * self._historical_quote_num
         return n
         
     def reset(self):
@@ -200,19 +200,6 @@ class HistoricalHardConstrainTranche(BasicTranche):
         return state
 
     def step(self, action):
-        '''
-        Argument:
-        ---------
-        action: list, tuple, or array likes [side, level, size], where side in {0=buy, 1=sell}.
-        
-        Returns:
-        --------
-        state: list, state of next step.
-
-        reward: int, reward of current action.
-
-        final: bool, final signal.
-        '''
         super().step(action)
         if self._final:
             reward = self.vwap - self.market_vwap
@@ -229,11 +216,11 @@ class HistoricalHardConstrainTranche(BasicTranche):
         for _ in range(self._historical_quote_num - 1):
             quote = self._data.pre_quote(quote)
             if quote is not None:
-                quotes = np._c[self._data.quote_board(quote).values.flatten(), quotes]
+                quotes = np.r_[self._data.quote_board(quote).values.flatten(), quotes]
             else:
                 break
-        padnum = self.observation_space_n - quotes.shape
-        quotes = np.pad(quotes, padnum)
+        padnum = 40 * self._historical_quote_num - len(quotes)
+        quotes = np.pad(quotes, (padnum, 0))
         return quotes
 
 
