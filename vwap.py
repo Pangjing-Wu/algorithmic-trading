@@ -30,19 +30,20 @@ env_params = list()
 for i in range(arg.pre_days, len(trades)):
     param = dict(tickdata=datas[i], level=arg.level, side=arg.side)
     if arg.exchange == 'general':
-        param['transaction_engine'] = GeneralExchange(datas[i], 3).transaction_engine
+        param['transaction_engine'] = GeneralExchange(datas[i], arg.wait_t).transaction_engine
     else:
         raise KeyError('unkonwn exchange.')
     env_params.append(param)
 
-if arg.env == 'hardconstrain':
+if arg.env == 'hard_constrain':
     env = HardConstrainTranche
-elif arg.env == 'histricalhardconstrain':
+elif arg.env == 'histrical_hard_constrain':
     env = HistoricalHardConstrainTranche
     for param in env_params:
         param['historical_quote_num'] = arg.hist_quote
 else:
     raise KeyError('unknown environment.')
+
 envs = [GenerateTranches(env, arg.goal, profile, **param)[arg.tranche_id] for profile, param in zip(volume_profiles, env_params)]
 
 if arg.agent == 'baseline':
@@ -83,5 +84,5 @@ elif arg.agent == 'linear':
         raise KeyError('argument mode must be train or test.')
 else:
     raise KeyError('unknown agent')
-# nohup python -u vwap.py --mode train --env histricalhardconstrain --agent linear --stock 600000 --side sell --tranche_id 0 2>&1 > "./results/600000/historicalhardconstrain/linear/8-tranches/0-tranche.log"
+# nohup python -u vwap.py --mode train --env histricalhardconstrain --agent linear --stock 600000 --side sell --tranche_id 0 2>&1 > "./logs/[filename].log"
 # python -u vwap.py --mode test --env histricalhardconstrain --agent linear --stock 600000 --side sell --tranche_id 0

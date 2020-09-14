@@ -3,7 +3,7 @@ import argparse
 def parse_args(strategy):
 	parser = argparse.ArgumentParser('algorithmic trading')
 	if strategy == 'vwap':
-		parser.add_argument('--env', type=str, help='uncompleted, specify environment type')
+		parser.add_argument('--env', type=str, help='hard_constrain/historical_hard_constrain, specify environment type')
 		parser.add_argument('--mode', type=str, help='train/test, specify running mode')
 		parser.add_argument('--stock', type=str, help='stock code')
 		parser.add_argument('--side', default='buy', type=str, help='buy/sell, transaction side')
@@ -19,6 +19,7 @@ def parse_args(strategy):
 		parser.add_argument('--overwrite', action='store_true', help='train a new model and overwrite existed')
 		parser.add_argument('--hist_quote', default=5, type=int, help='specify number of historical quote in state')
 		parser.add_argument('--save_dir', '--model_dir', default='./results', type=str, help='direction of load/save models')
+		parser.add_argument('--wait_t', default=3, type=int, help='wait time before traing')
 	else:
 		raise ValueError('Unknown strategy.')
 
