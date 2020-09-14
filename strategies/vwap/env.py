@@ -13,11 +13,12 @@ dotmut = lambda x, y: sum([a * b for a, b in zip(x, y)])
 # TODO env dose not concern trading side, need improve.
 class BasicTranche(abc.ABC):
 
-    def __init__(self, tickdata, task:pd.Series, transaction_engine:callable, level:int):
+    def __init__(self, tickdata, task:pd.Series, transaction_engine:callable, level:int, side:str):
         self._data = tickdata
         self._task = task
         self._engine = transaction_engine
         self._level_space = self._int2level(level)
+        self._side = side
         self._init = False
         self._final = False
         self._time = [t for t in self._data.quote_timeseries if t >= task['start'] and t < task['end']]
@@ -85,27 +86,32 @@ class BasicTranche(abc.ABC):
         self._iter = iter(self._time)
         self._t = next(self._iter)
         self._filled = {'time': [], 'price':[], 'size':[]}
-        self._order = {'time': 0, 'side': 'buy', 'price': 0, 'size': 0, 'pos': -1}
+        self._order = {'time': 0, 'side': self._side, 'price': 0, 'size': 0, 'pos': -1}
 
     @abc.abstractmethod
-    def step(self):
-        pass
+    def step(self, action):
+        if self._init == False:
+            raise NotInitiateError
+        if self._final == True:
+            raise EnvTerminatedError
+        if action < len(self._level_space):
+            self._order = self._action2order(action)
+        else:
+            self._order['time'] = self._t
+        self._order, filled = self._engine(self._order)
+        if sum(filled['size']) % 100 == 0:
+            self._filled['price'] += filled['price']
+            self._filled['size']  += filled['size']
+        self._t = next(self._iter)
+        if self._t == self._time[-1] or sum(self._filled['size']) == self._task['goal']:
+            self._final = True
 
-    def _action2order(self, action):
-        '''
-        Argument:
-        ---------
-        action: list, tuple, or array likes [side, level, size], where side: int, 0=buy, 1=sell.
-        
-        Return:
-        -------
-        order: dict, keys are ('side', 'price', 'size', 'pos').
-        '''
+    def _action2order(self, action:int):
         time  = self._t
-        side  = 'buy' if action[0] == 0 else 'sell'
-        level = self._level_space[action[1]]
+        side  = self._side
+        level = self._level_space[action]
         price = self._data.get_quote(time)[level].iloc[0]
-        order = dict(time=time, side=side, price=price, size=action[2], pos=-1)
+        order = dict(time=time, side=side, price=price, size=100, pos=-1)
         return order
 
     def _int2level(self, level:int):
@@ -118,10 +124,10 @@ class BasicTranche(abc.ABC):
         return level_space
 
 
-class BasicHardConstrainTranche(BasicTranche):
+class BasicHardConstrainTranche(BasicTranche, abc.ABC):
     
-    def __init__(self, tickdata, task:pd.Series, transaction_engine:callable, level:int):
-        super().__init__(tickdata=tickdata, task=task, transaction_engine=transaction_engine, level=level)
+    def __init__(self, tickdata, task:pd.Series, transaction_engine:callable, level:int, side:str):
+        super().__init__(tickdata=tickdata, task=task, transaction_engine=transaction_engine, level=level, side=side)
 
     @abc.abstractmethod
     def reset(self):
@@ -129,26 +135,10 @@ class BasicHardConstrainTranche(BasicTranche):
 
     @abc.abstractmethod
     def step(self, action):
-        if self._init == False:
-            raise NotInitiateError
-        if self._final == True:
-            raise EnvTerminatedError
-        if action[2] > 0:
-            self._order = self._action2order(action)
-        else:
-            self._order['time'] = self._t
-
-        self._order, filled = self._engine(self._order)
-        if sum(filled['size']) % 100 == 0:
-            self._filled['price'] += filled['price']
-            self._filled['size']  += filled['size']
-
-        self._t = next(self._iter)
-        if self._t == self._time[-1] or sum(self._filled['size']) == self._task['goal']:
-            self._final = True
+        super().step(action)
         # issue remaining orders as market order at the end.
         if self._final == True and sum(self._filled['size']) < self._task['goal']:
-            market_order_level = 'ask1' if action[0] == 0 else 'bid1'
+            market_order_level = 'ask1' if self._side else 'bid1'
             self._filled['price'].append(self._data.get_quote(self._t)[market_order_level].iloc[0])
             self._filled['size'].append(self._task['goal'] - sum(self._filled['size']))
 
@@ -156,8 +146,8 @@ class BasicHardConstrainTranche(BasicTranche):
 # 2.0 version env
 class HardConstrainTranche(BasicHardConstrainTranche):
     
-    def __init__(self, tickdata, task:pd.Series, transaction_engine:callable, level:int):
-        super().__init__(tickdata=tickdata, task=task, transaction_engine=transaction_engine, level=level)
+    def __init__(self, tickdata, task:pd.Series, transaction_engine:callable, level:int, side:str):
+        super().__init__(tickdata=tickdata, task=task, transaction_engine=transaction_engine, level=level, side=side)
 
     @property
     def observation_space_n(self):
@@ -175,26 +165,12 @@ class HardConstrainTranche(BasicHardConstrainTranche):
         return state
 
     def step(self, action):
-        '''
-        Argument:
-        ---------
-        action: list, tuple, or array likes [side, level, size], where side in {0=buy, 1=sell}.
-        
-        Returns:
-        --------
-        state: list, state of next step.
-
-        reward: int, reward of current action.
-
-        final: bool, final signal.
-        '''
         super().step(action)
-
         if self._final == True:
-            reward = self.vwap - self.market_vwap
+            reward = self.market_vwap - self.vwap 
+            reward = reward if self._side == 'buy' else -reward
         else:
             reward = 0
-            
         prices = self._data.get_quote(self._t)[self._level_space].iloc[0].values.tolist()
         state  = [self._t / 1000, self._task['start'] / 1000, self._task['end'] / 1000,
                   self._task['goal'], sum(self._filled['size']), *prices]
@@ -204,8 +180,8 @@ class HardConstrainTranche(BasicHardConstrainTranche):
 # 2.5 version env
 class HistoricalHardConstrainTranche(BasicTranche):
     
-    def __init__(self, tickdata, task:pd.Series, transaction_engine:callable, level:int, historical_quote_num:int):
-        super().__init__(tickdata=tickdata, task=task, transaction_engine=transaction_engine, level=level)
+    def __init__(self, tickdata, task:pd.Series, transaction_engine:callable, level:int, side:str, historical_quote_num:int):
+        super().__init__(tickdata=tickdata, task=task, transaction_engine=transaction_engine, level=level, side=side)
         self._historical_quote_num = historical_quote_num
 
     @property
@@ -238,12 +214,11 @@ class HistoricalHardConstrainTranche(BasicTranche):
         final: bool, final signal.
         '''
         super().step(action)
-        
-        if self._final == True:
+        if self._final:
             reward = self.vwap - self.market_vwap
+            reward = reward if self._side == 'buy' else -reward
         else:
             reward = 0
-
         state  = [self._t / 1000, self._task['start'] / 1000, self._task['end'] / 1000, 
                   self._task['goal'], sum(self._filled['size']), *self._get_historical_quote()]
         return (state, reward, self._final)
@@ -264,54 +239,30 @@ class HistoricalHardConstrainTranche(BasicTranche):
 
 class SemiHardConstrainTranche(BasicTranche):
     
-    def __init__(self, tickdata, task:pd.Series, transaction_engine:callable, level:int):
-        super().__init__(tickdata=tickdata, task=task, transaction_engine=transaction_engine, level=level)
+    def __init__(self, tickdata, task:pd.Series, transaction_engine:callable, level:int, side:str):
+        super().__init__(tickdata=tickdata, task=task, transaction_engine=transaction_engine, level=level, side=side)
 
     def reset(self):
         super().reset()
-        state = [self._t / 1000, self._task['start'] / 1000, self._task['end'] / 1000, self._task['goal'], sum(self._filled['size'])]
+        prices = self._data.quote_board(self._t).loc[self._level_space, 'price'].values.tolist()
+        state  = [
+            self._t / 1000,
+            self._task['start'] / 1000, self._task['end'] / 1000,
+            self._task['goal'], sum(self._filled['size']),
+            *prices
+            ]
         return state
 
     def step(self, action):
-        '''
-        Argument:
-        ---------
-        action: list, tuple, or array likes [side, level, size], where side in {0=buy, 1=sell}.
-        
-        Returns:
-        --------
-        state: list, state of next step.
-
-        reward: int, reward of current action.
-
-        final: bool, final signal.
-        '''
-        if self._init == False:
-            raise NotInitiateError
-        if self._final == True:
-            raise EnvTerminatedError
-        if action[2] > 0:
-            self._order = self._action2order(action)
-        else:
-            self._order['time'] = self._t
-
-        self._order, filled = self._engine(self._order)
-
-        if sum(filled['size']) % 100 == 0:
-            self._filled['price'] += filled['price']
-            self._filled['size']  += filled['size']
-
-        self._t = next(self._iter)
-        if self._t == self._time[-1] or sum(self._filled['size']) == self._task['goal']:
-            self._final = True
-
+        super.step()
         if self._final and sum(self._filled['size']) < self._task['goal']:
             reward = -999
         else:
             reward = self.vwap - self.market_vwap
 
         prices = self._data.get_quote(self._t)[self._level_space].iloc[0].values.tolist()
-        state  = [self._t / 1000, self._task['start'] / 1000, self._task['end'] / 1000, self._task['goal'], sum(self._filled['size']), *prices]
+        state  = [self._t / 1000, self._task['start'] / 1000, self._task['end'] / 1000,
+                  self._task['goal'], sum(self._filled['size']), *prices]
         return (state, reward, self._final)
 
 
