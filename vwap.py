@@ -68,7 +68,7 @@ elif arg.agent == 'linear':
         if os.path.exists(modeldir) and not arg.overwrite:
             agent.load_state_dict(torch.load(modeldir))
         trainer = EpisodicTraining(agent)
-        trainer.train(envs, arg.episodes, savedir=modeldir)
+        trainer.train(envs[:-1], arg.episodes, val_split=.2, savedir=modeldir)
 
     elif arg.mode == 'test':
         env_test = envs[-1]
@@ -84,5 +84,5 @@ elif arg.agent == 'linear':
         raise KeyError('argument mode must be train or test.')
 else:
     raise KeyError('unknown agent')
-# nohup python -u vwap.py --mode train --env histricalhardconstrain --agent linear --stock 600000 --side sell --tranche_id 0 2>&1 > "./logs/[filename].log"
-# python -u vwap.py --mode test --env histricalhardconstrain --agent linear --stock 600000 --side sell --tranche_id 0
+# python -u vwap.py --mode train --env histrical_hard_constrain --agent linear --stock 600000 --side sell --tranche_id 0
+# python -u vwap.py --mode test --env histrical_hard_constrain --agent linear --stock 600000 --side sell --tranche_id 0

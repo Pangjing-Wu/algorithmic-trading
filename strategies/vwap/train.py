@@ -3,6 +3,7 @@ import random
 
 import torch
 
+random.seed(0)
 
 class BaselineTraining(object):
 
@@ -41,14 +42,18 @@ class EpisodicTraining(object):
     def parameters(self):
         return self._agent.state_dict()
 
-    def train(self, envs:list, episodes:int, savedir:str):
+    def train(self, envs:list, episodes:int, val_split:int, savedir:str):
         if len(envs) < 2:
             raise KeyError('Too less environments to train, at least need 2.') 
+        random.shuffle(envs)
+        i_spilt     = int(len(envs) * val_split)
+        val_envs    = envs[:i_spilt]
+        train_envs  = envs[i_spilt:]
         best_reward = None
-        epsilon = self._epsilon
+        epsilon     = self._epsilon
         for episode in range(episodes):
             rewards = list()
-            for env in envs[:-1]:
+            for env in train_envs:
                 s = env.reset()
                 final = False
                 reward = 0
@@ -72,7 +77,7 @@ class EpisodicTraining(object):
                     s = s1
                 rewards.append(reward)
                 epsilon *= self._delta_eps
-            val_reward   = self.test(envs[-1])
+            val_reward   = self.validation(val_envs)
             train_reward = sum(rewards) / len(rewards)
             print('Episode %d/%d: train reward = %.5f, validation reward = %.5f.' % (episode+1, episodes, train_reward, val_reward))
             if best_reward == None or best_reward < val_reward:
@@ -103,7 +108,24 @@ class EpisodicTraining(object):
                     loss.backward()
                     self._optimizer.step()
                     s = s1
-    
+
+    def validation(self, envs):
+        rewards = list()
+        for env in envs:
+            s = env.reset()
+            final = False
+            reward = 0
+            while not final:
+                with torch.no_grad():
+                    Q = self._agent(s)
+                    a = torch.argmax(Q).item()
+                s1, r, final = env.step(a)
+                reward += r
+                s = s1
+            rewards.append(reward)
+        rewards = sum(rewards) / len(rewards)
+        return rewards
+
     def test(self, env):
         s = env.reset()
         final = False
