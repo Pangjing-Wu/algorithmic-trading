@@ -84,5 +84,3 @@ elif arg.agent == 'linear':
         raise KeyError('argument mode must be train or test.')
 else:
     raise KeyError('unknown agent')
-# python -u vwap.py --mode train --env histrical_hard_constrain --agent linear --stock 600000 --side sell --tranche_id 0
-# python -u vwap.py --mode test --env histrical_hard_constrain --agent linear --stock 600000 --side sell --tranche_id 0
