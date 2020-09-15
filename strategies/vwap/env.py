@@ -10,7 +10,7 @@ from utils.errors import *
 argmax = lambda a: [i for i, val in enumerate(a) if (val == max(a))][0]
 dotmut = lambda x, y: sum([a * b for a, b in zip(x, y)])
 
-# TODO env dose not concern trading side, need improve.
+
 class BasicTranche(abc.ABC):
 
     def __init__(self, tickdata, task:pd.Series, transaction_engine:callable, level:int, side:str):
@@ -80,6 +80,17 @@ class BasicTranche(abc.ABC):
         return ret
     
     @abc.abstractmethod
+    def _state(self):
+        pass
+
+    @abc.abstractmethod
+    def _reward(self):
+        pass
+    
+    @abc.abstractmethod
+    def _postprocess(self):
+        pass
+
     def reset(self):
         self._init = True
         self._final = False
@@ -87,8 +98,8 @@ class BasicTranche(abc.ABC):
         self._t = next(self._iter)
         self._filled = {'time': [], 'price':[], 'size':[]}
         self._order = {'time': 0, 'side': self._side, 'price': 0, 'size': 0, 'pos': -1}
+        return self._state()
 
-    @abc.abstractmethod
     def step(self, action):
         if self._init == False:
             raise NotInitiateError
@@ -105,6 +116,8 @@ class BasicTranche(abc.ABC):
         self._t = next(self._iter)
         if self._t == self._time[-1] or sum(self._filled['size']) == self._task['goal']:
             self._final = True
+        self._postprocess()
+        return (self._state(), self._reward(), self._final)
 
     def _action2order(self, action:int):
         time  = self._t
@@ -125,20 +138,18 @@ class BasicTranche(abc.ABC):
 
 
 class BasicHardConstrainTranche(BasicTranche, abc.ABC):
+
+    def _reward(self):
+        if self._final:
+            reward = self.market_vwap - self.vwap
+            reward = reward if self._side == 'buy' else -reward
+        else:
+            reward = 0
+        return reward
     
-    def __init__(self, tickdata, task:pd.Series, transaction_engine:callable, level:int, side:str):
-        super().__init__(tickdata=tickdata, task=task, transaction_engine=transaction_engine, level=level, side=side)
-
-    @abc.abstractmethod
-    def reset(self):
-        super().reset()
-
-    @abc.abstractmethod
-    def step(self, action):
-        super().step(action)
-        # issue remaining orders as market order at the end.
+    def _postprocess(self):
         if self._final == True and sum(self._filled['size']) < self._task['goal']:
-            market_order_level = 'ask1' if self._side else 'bid1'
+            market_order_level = 'bid1' if self._side == 'buy' else 'ask1'
             self._filled['price'].append(self._data.get_quote(self._t)[market_order_level].iloc[0])
             self._filled['size'].append(self._task['goal'] - sum(self._filled['size']))
 
@@ -152,29 +163,12 @@ class HardConstrainTranche(BasicHardConstrainTranche):
     @property
     def observation_space_n(self):
         return 7
-        
-    def reset(self):
-        super().reset()
-        prices = self._data.quote_board(self._t).loc[self._level_space, 'price'].values.tolist()
-        state  = [
-            self._t / 1000,
-            self._task['start'] / 1000, self._task['end'] / 1000,
-            self._task['goal'], sum(self._filled['size']),
-            *prices
-            ]
-        return state
 
-    def step(self, action):
-        super().step(action)
-        if self._final == True:
-            reward = self.market_vwap - self.vwap 
-            reward = reward if self._side == 'buy' else -reward
-        else:
-            reward = 0
+    def _state(self):
         prices = self._data.get_quote(self._t)[self._level_space].iloc[0].values.tolist()
         state  = [self._t / 1000, self._task['start'] / 1000, self._task['end'] / 1000,
                   self._task['goal'], sum(self._filled['size']), *prices]
-        return (state, reward, self._final)
+        return state
 
 
 # 2.5 version env
@@ -188,29 +182,8 @@ class HistoricalHardConstrainTranche(BasicHardConstrainTranche):
     def observation_space_n(self):
         n = 5 + 40 * self._historical_quote_num
         return n
-        
-    def reset(self):
-        super().reset()
-        state  = [
-            self._t / 1000,
-            self._task['start'] / 1000, self._task['end'] / 1000,
-            self._task['goal'], sum(self._filled['size']),
-            *self._get_historical_quote()
-            ]
-        return state
 
-    def step(self, action):
-        super().step(action)
-        if self._final:
-            reward = self.market_vwap - self.vwap
-            reward = reward if self._side == 'buy' else -reward
-        else:
-            reward = 0
-        state  = [self._t / 1000, self._task['start'] / 1000, self._task['end'] / 1000, 
-                  self._task['goal'], sum(self._filled['size']), *self._get_historical_quote()]
-        return (state, reward, self._final)
-
-    def _get_historical_quote(self):
+    def _state(self):
         quote  = self._data.get_quote(self._t)
         quotes = self._data.quote_board(quote).values.flatten()
         for _ in range(self._historical_quote_num - 1):
@@ -221,7 +194,13 @@ class HistoricalHardConstrainTranche(BasicHardConstrainTranche):
                 break
         padnum = 40 * self._historical_quote_num - len(quotes)
         quotes = np.pad(quotes, (padnum, 0))
-        return quotes
+        state  = [
+            self._t / 1000,
+            self._task['start'] / 1000, self._task['end'] / 1000,
+            self._task['goal'], sum(self._filled['size']),
+            *quotes
+            ]
+        return state
 
 
 class SemiHardConstrainTranche(BasicTranche):
@@ -229,8 +208,7 @@ class SemiHardConstrainTranche(BasicTranche):
     def __init__(self, tickdata, task:pd.Series, transaction_engine:callable, level:int, side:str):
         super().__init__(tickdata=tickdata, task=task, transaction_engine=transaction_engine, level=level, side=side)
 
-    def reset(self):
-        super().reset()
+    def _state(self):
         prices = self._data.quote_board(self._t).loc[self._level_space, 'price'].values.tolist()
         state  = [
             self._t / 1000,
@@ -238,19 +216,15 @@ class SemiHardConstrainTranche(BasicTranche):
             self._task['goal'], sum(self._filled['size']),
             *prices
             ]
-        return state
 
-    def step(self, action):
-        super.step()
+    def _reward(self):
         if self._final and sum(self._filled['size']) < self._task['goal']:
             reward = -999
         else:
             reward = self.vwap - self.market_vwap
-
-        prices = self._data.get_quote(self._t)[self._level_space].iloc[0].values.tolist()
-        state  = [self._t / 1000, self._task['start'] / 1000, self._task['end'] / 1000,
-                  self._task['goal'], sum(self._filled['size']), *prices]
-        return (state, reward, self._final)
+    
+    def _postprocess(self):
+        pass
 
 
 class GenerateTranches(object):
