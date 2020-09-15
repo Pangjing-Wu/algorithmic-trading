@@ -178,7 +178,7 @@ class HardConstrainTranche(BasicHardConstrainTranche):
 
 
 # 2.5 version env
-class HistoricalHardConstrainTranche(BasicTranche):
+class HistoricalHardConstrainTranche(BasicHardConstrainTranche):
     
     def __init__(self, tickdata, task:pd.Series, transaction_engine:callable, level:int, side:str, historical_quote_num:int):
         super().__init__(tickdata=tickdata, task=task, transaction_engine=transaction_engine, level=level, side=side)
@@ -202,7 +202,7 @@ class HistoricalHardConstrainTranche(BasicTranche):
     def step(self, action):
         super().step(action)
         if self._final:
-            reward = self.vwap - self.market_vwap
+            reward = self.market_vwap - self.vwap
             reward = reward if self._side == 'buy' else -reward
         else:
             reward = 0
