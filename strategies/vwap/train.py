@@ -28,7 +28,7 @@ class BaselineTraining(object):
         return reward
 
 
-class EpisodicTraining(object):
+class EpisodicQLearning(object):
 
     def __init__(self, agent, epsilon=0.1, gamma=0.99, delta_eps=0.998):
         self._agent      = agent

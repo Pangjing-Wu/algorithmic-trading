@@ -9,7 +9,7 @@ from exchange.stock import GeneralExchange
 from options import parse_args
 from strategies.vwap.agent import Baseline, Linear
 from strategies.vwap.env import GenerateTranches, HardConstrainTranche, HistoricalHardConstrainTranche
-from strategies.vwap.train import BaselineTraining, EpisodicTraining
+from strategies.vwap.train import BaselineTraining, EpisodicQLearning
 from tickdata.datatype import TickData
 from utils.statistic import group_trade_volume_by_time, tranche_num
 
@@ -67,7 +67,7 @@ elif arg.agent == 'linear':
     if arg.mode == 'train':
         if os.path.exists(modeldir) and not arg.overwrite:
             agent.load_state_dict(torch.load(modeldir))
-        trainer = EpisodicTraining(agent)
+        trainer = EpisodicQLearning(agent)
         trainer.train(envs[:-1], arg.episodes, val_split=.2, savedir=modeldir)
 
     elif arg.mode == 'test':
@@ -76,7 +76,7 @@ elif arg.agent == 'linear':
             agent.load_state_dict(torch.load(modeldir))
         else:
             raise FileNotFoundError('cannot find model file in %s' % modeldir)
-        trainer = EpisodicTraining(agent)
+        trainer = EpisodicQLearning(agent)
         reward  = trainer.test(env_test)
         print('test reward = %.5f' % reward)
         print('test metric = %s' % env_test.metrics())
