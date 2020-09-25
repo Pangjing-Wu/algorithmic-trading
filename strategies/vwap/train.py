@@ -28,15 +28,15 @@ class BaselineTraining(object):
         return reward
 
 
-class EpisodicQLearning(object):
+class QLearning(object):
 
-    def __init__(self, agent, epsilon=0.1, gamma=0.99, delta_eps=0.998):
+    def __init__(self, agent, epsilon=0.1, gamma=0.99, delta_eps=0.998, lr=0.1):
         self._agent      = agent
         self._epsilon    = epsilon
         self._gamma      = gamma
         self._delta_eps  = delta_eps
         self._criterion  = self._agent.criterion()
-        self._optimizer  = self._agent.optimizer(self._agent.parameters(), lr=0.1)
+        self._optimizer  = self._agent.optimizer(self._agent.parameters(), lr=lr)
     
     @property
     def parameters(self):

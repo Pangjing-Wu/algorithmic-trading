@@ -154,7 +154,7 @@ class BasicHardConstrainTranche(BasicTranche, abc.ABC):
             self._filled['size'].append(self._task['goal'] - sum(self._filled['size']))
 
 
-# 2.0 version env
+# 2.0.0 version env
 class HardConstrainTranche(BasicHardConstrainTranche):
     
     def __init__(self, tickdata, task:pd.Series, transaction_engine:callable, level:int, side:str):
@@ -171,7 +171,7 @@ class HardConstrainTranche(BasicHardConstrainTranche):
         return state
 
 
-# 2.5 version env
+# 2.5.0 version env
 class HistoricalHardConstrainTranche(BasicHardConstrainTranche):
     
     def __init__(self, tickdata, task:pd.Series, transaction_engine:callable, level:int, side:str, historical_quote_num:int):
@@ -200,6 +200,33 @@ class HistoricalHardConstrainTranche(BasicHardConstrainTranche):
             self._task['goal'], sum(self._filled['size']),
             *quotes
             ]
+        return state
+
+
+class RecurrentHardConstrainTranche(BasicHardConstrainTranche):
+    
+    def __init__(self, tickdata, task:pd.Series, transaction_engine:callable, level:int, side:str, historical_quote_num:int):
+        super().__init__(tickdata=tickdata, task=task, transaction_engine=transaction_engine, level=level, side=side)
+        self._historical_quote_num = historical_quote_num
+
+    @property
+    def observation_space_n(self):
+        n = (5, 40)
+        return n
+
+    def _state(self):
+        quote  = self._data.get_quote(self._t)
+        quotes = [self._data.quote_board(quote).values.flatten().tolist()]
+        for _ in range(self._historical_quote_num - 1):
+            quote = self._data.pre_quote(quote)
+            if quote is not None:
+                quotes.append(self._data.quote_board(quote).values.flatten().tolist())
+            else:
+                break
+        padnum = self._historical_quote_num - len(quotes)
+        quotes = np.pad(quotes, ((padnum,0), (0,0)))
+        state  = [self._t / 1000, self._task['start'] / 1000, self._task['end'] / 1000, self._task['goal'], sum(self._filled['size'])]
+        state  = (state, quotes)
         return state
 
 

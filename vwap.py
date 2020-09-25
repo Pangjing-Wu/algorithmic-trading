@@ -7,9 +7,9 @@ import torch.nn as nn
 
 from exchange.stock import GeneralExchange
 from options import parse_args
-from strategies.vwap.agent import Baseline, Linear
-from strategies.vwap.env import GenerateTranches, HardConstrainTranche, HistoricalHardConstrainTranche
-from strategies.vwap.train import BaselineTraining, EpisodicQLearning
+from strategies.vwap.agent import *
+from strategies.vwap.env import *
+from strategies.vwap.train import BaselineTraining, QLearning
 from tickdata.datatype import TickData
 from utils.statistic import group_trade_volume_by_time, tranche_num
 
@@ -41,6 +41,10 @@ elif arg.env == 'histrical_hard_constrain':
     env = HistoricalHardConstrainTranche
     for param in env_params:
         param['historical_quote_num'] = arg.hist_quote
+elif arg.env == 'recurrent_hard_constrain':
+    env = RecurrentHardConstrainTranche
+    for param in env_params:
+        param['historical_quote_num'] = arg.hist_quote
 else:
     raise KeyError('unknown environment.')
 
@@ -67,7 +71,7 @@ elif arg.agent == 'linear':
     if arg.mode == 'train':
         if os.path.exists(modeldir) and not arg.overwrite:
             agent.load_state_dict(torch.load(modeldir))
-        trainer = EpisodicQLearning(agent)
+        trainer = QLearning(agent)
         trainer.train(envs[:-1], arg.episodes, val_split=.2, savedir=modeldir)
 
     elif arg.mode == 'test':
@@ -76,11 +80,36 @@ elif arg.agent == 'linear':
             agent.load_state_dict(torch.load(modeldir))
         else:
             raise FileNotFoundError('cannot find model file in %s' % modeldir)
-        trainer = EpisodicQLearning(agent)
+        trainer = QLearning(agent)
         reward  = trainer.test(env_test)
         print('test reward = %.5f' % reward)
         print('test metric = %s' % env_test.metrics())
     else:
         raise KeyError('argument mode must be train or test.')
+
+elif arg.agent == 'lstm':
+    criterion = nn.MSELoss
+    optimizer = torch.optim.Adam
+    agent = LSTM(envs[0].observation_space_n, envs[0].action_space_n, criterion=nn.MSELoss, optimizer=torch.optim.Adam)
+    
+    if arg.mode == 'train':
+        if os.path.exists(modeldir) and not arg.overwrite:
+            agent.load_state_dict(torch.load(modeldir))
+        trainer = QLearning(agent)
+        trainer.train(envs[:-1], arg.episodes, val_split=.2, savedir=modeldir)
+
+    elif arg.mode == 'test':
+        env_test = envs[-1]
+        if os.path.exists(modeldir):
+            agent.load_state_dict(torch.load(modeldir))
+        else:
+            raise FileNotFoundError('cannot find model file in %s' % modeldir)
+        trainer = QLearning(agent)
+        reward  = trainer.test(env_test)
+        print('test reward = %.5f' % reward)
+        print('test metric = %s' % env_test.metrics())
+    else:
+        raise KeyError('argument mode must be train or test.')
+
 else:
     raise KeyError('unknown agent')

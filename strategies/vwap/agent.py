@@ -42,28 +42,14 @@ class Baseline(object):
         else:
             return filled_ratio / time_ratio
 
-
-class BasicDNN(nn.Module):
-
-    def __init__(self, criterion, optimizer):
+    
+class Linear(nn.Module):
+    
+    def __init__(self, input_size, output_size, criterion=None, optimizer=None):
         super().__init__()
-        self._criterion = criterion
-        self._optimizer = optimizer
-
-    @property
-    def criterion(self):
-        return self._criterion
-
-    @property
-    def optimizer(self):
-        return self._optimizer
-
-    
-class Linear(BasicDNN):
-    
-    def __init__(self, input_size, output_size, criterion, optimizer):
-        super().__init__(criterion, optimizer)
-        self.l1 = nn.Linear(input_size, output_size, bias=False)
+        self.criterion = nn.MSELoss if criterion is None else criterion
+        self.optimizer = torch.optim.Adam if optimizer is None else optimizer
+        self.l1 = nn.Linear(input_size, output_size, bias=True)
         nn.init.uniform_(self.l1.weight, 0, 0.001)
     
     def forward(self, x):
@@ -72,5 +58,22 @@ class Linear(BasicDNN):
         return x
 
     
-class Lstm(BasicDNN):
-    pass
+class LSTM(nn.Module):
+    
+    def __init__(self, input_size:tuple, output_size:int, hidden_size=20,
+                 num_layers=1, dropout=0, criterion=None, optimizer=None):
+        super().__init__()
+        self.criterion = nn.MSELoss if criterion is None else criterion
+        self.optimizer = torch.optim.Adam if optimizer is None else optimizer
+        self.l1   = nn.Linear(input_size[0]+hidden_size, output_size, bias=True)
+        self.lstm = nn.LSTM(input_size[1], hidden_size, num_layers, dropout=dropout, batch_first=True)
+        nn.init.uniform_(self.l1.weight, 0, 0.001)
+        
+    def forward(self, x):
+        x0 = torch.Tensor(x[0])
+        x1 = torch.Tensor(x[1]).unsqueeze(0)
+        x1, _ = self.lstm(x1)
+        x = [x0, x1[0,-1,:]]
+        x = torch.cat(x)
+        x = self.l1(x)
+        return x
