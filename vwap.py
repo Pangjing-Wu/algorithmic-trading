@@ -24,11 +24,15 @@ tradefiles = sorted(glob.glob('./data/%s/trade/*.csv' % arg.stock))
 quotes = [pd.read_csv(file) for file in quotefiles]
 trades = [pd.read_csv(file) for file in tradefiles]
 datas  = [TickData(quote, trade) for quote, trade in zip(quotes, trades)]
-volume_profiles = [group_trade_volume_by_time(trades[i-arg.pre_days:i], arg.time_range, arg.interval) for i in range(arg.pre_days, len(trades))]
 
 env_params = list()
 for i in range(arg.pre_days, len(trades)):
-    param = dict(tickdata=datas[i], level=arg.level, side=arg.side)
+    param = dict(
+        tickdata=datas[i], 
+        level=arg.level, 
+        side=arg.side,
+        volume_profile = group_trade_volume_by_time(trades[i-arg.pre_days:i], arg.time_range, arg.interval)
+        )
     if arg.exchange == 'general':
         param['transaction_engine'] = GeneralExchange(datas[i], arg.wait_t).transaction_engine
     else:
@@ -48,7 +52,7 @@ elif arg.env == 'recurrent_hard_constrain':
 else:
     raise KeyError('unknown environment.')
 
-envs = [GenerateTranches(env, arg.goal, profile, **param)[arg.tranche_id] for profile, param in zip(volume_profiles, env_params)]
+envs = [GenerateTranches(env, arg.goal, **param)[arg.tranche_id] for param in env_params]
 
 if arg.agent == 'baseline':
     agent = Baseline(arg.side)
@@ -66,7 +70,7 @@ if arg.agent == 'baseline':
 elif arg.agent == 'linear':
     criterion = nn.MSELoss
     optimizer = torch.optim.Adam
-    agent = Linear(envs[0].observation_space_n, envs[0].action_space_n, criterion=nn.MSELoss, optimizer=torch.optim.Adam)
+    agent = Linear(envs[0].observation_space_n, envs[0].action_space_n, criterion=criterion, optimizer=criterion).cuda()
     
     if arg.mode == 'train':
         if os.path.exists(modeldir) and not arg.overwrite:
@@ -90,7 +94,7 @@ elif arg.agent == 'linear':
 elif arg.agent == 'lstm':
     criterion = nn.MSELoss
     optimizer = torch.optim.Adam
-    agent = LSTM(envs[0].observation_space_n, envs[0].action_space_n, criterion=nn.MSELoss, optimizer=torch.optim.Adam)
+    agent = LSTM(envs[0].observation_space_n, envs[0].action_space_n, criterion=criterion, optimizer=criterion).cuda()
     
     if arg.mode == 'train':
         if os.path.exists(modeldir) and not arg.overwrite:
