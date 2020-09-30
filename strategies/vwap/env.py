@@ -34,6 +34,18 @@ class BasicTranche(abc.ABC):
     def action_space(self):
         return list(range(len(self._level_space) + 1))
 
+    @abc.abstractmethod
+    def _state(self):
+        pass
+
+    @abc.abstractmethod
+    def _reward(self):
+        pass
+    
+    @abc.abstractmethod
+    def _postprocess(self):
+        pass
+
     @property
     def action_space_n(self):
         return len(self._level_space) + 1
@@ -78,18 +90,6 @@ class BasicTranche(abc.ABC):
             market_vwap=round(self.market_vwap, 5)
             )
         return ret
-    
-    @abc.abstractmethod
-    def _state(self):
-        pass
-
-    @abc.abstractmethod
-    def _reward(self):
-        pass
-    
-    @abc.abstractmethod
-    def _postprocess(self):
-        pass
 
     def reset(self):
         self._init = True
@@ -144,7 +144,7 @@ class BasicHardConstrainTranche(BasicTranche, abc.ABC):
             reward = self.market_vwap - self.vwap
             reward = reward if self._side == 'buy' else -reward
         else:
-            reward = 0
+            reward = 0.0
         return reward
     
     def _postprocess(self):
@@ -152,7 +152,6 @@ class BasicHardConstrainTranche(BasicTranche, abc.ABC):
             market_order_level = 'bid1' if self._side == 'buy' else 'ask1'
             self._filled['price'].append(self._data.get_quote(self._t)[market_order_level].iloc[0])
             self._filled['size'].append(self._task['goal'] - sum(self._filled['size']))
-
 
 # 2.0.0 version env
 class HardConstrainTranche(BasicHardConstrainTranche):
@@ -168,7 +167,7 @@ class HardConstrainTranche(BasicHardConstrainTranche):
         prices = self._data.get_quote(self._t)[self._level_space].iloc[0].values.tolist()
         state  = [self._t / 1000, self._task['start'] / 1000, self._task['end'] / 1000,
                   self._task['goal'], sum(self._filled['size']), *prices]
-        return state
+        return np.array(state)
 
 
 # 2.5.0 version env
@@ -200,7 +199,7 @@ class HistoricalHardConstrainTranche(BasicHardConstrainTranche):
             self._task['goal'], sum(self._filled['size']),
             *quotes
             ]
-        return state
+        return np.array(state, dtype=np.float32)
 
 
 class RecurrentHardConstrainTranche(BasicHardConstrainTranche):
@@ -227,7 +226,7 @@ class RecurrentHardConstrainTranche(BasicHardConstrainTranche):
         quotes = np.pad(quotes, ((padnum,0), (0,0)))
         state  = [self._t / 1000, self._task['start'] / 1000, self._task['end'] / 1000, self._task['goal'], sum(self._filled['size'])]
         state  = (state, quotes)
-        return state
+        return np.array(state, dtype=np.float32)
 
 
 class SemiHardConstrainTranche(BasicTranche):
@@ -243,12 +242,17 @@ class SemiHardConstrainTranche(BasicTranche):
             self._task['goal'], sum(self._filled['size']),
             *prices
             ]
+        return np.array(state, dtype=np.float32)
 
     def _reward(self):
-        if self._final and sum(self._filled['size']) < self._task['goal']:
-            reward = -999
+        if self._final:
+            if sum(self._filled['size']) < self._task['goal']:
+                reward = -999.0
+            else:
+                reward = self.vwap - self.market_vwap
         else:
-            reward = self.vwap - self.market_vwap
+            reward = 0.0
+        return reward
     
     def _postprocess(self):
         pass

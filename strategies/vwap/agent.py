@@ -53,7 +53,7 @@ class Linear(nn.Module):
         nn.init.uniform_(self.l1.weight, 0, 0.001)
     
     def forward(self, x):
-        x = torch.Tensor(x)
+        x = x if torch.is_tensor(x) else torch.tensor(x)
         x = self.l1(x)
         return x
 
@@ -70,10 +70,16 @@ class LSTM(nn.Module):
         nn.init.uniform_(self.l1.weight, 0, 0.001)
         
     def forward(self, x):
-        x0 = torch.Tensor(x[0])
-        x1 = torch.Tensor(x[1]).unsqueeze(0)
+        if x.ndim == 1:
+            x0 = torch.tensor(x[0])
+            x1 = torch.tensor(x[1])
+        elif x.ndim == 2:
+            x0 = torch.tensor(x[:,0])
+            x1 = torch.tensor(x[:,1])
+        else:
+            raise KeyError('unexcepted dimension of x.')
         x1, _ = self.lstm(x1)
-        x = [x0, x1[0,-1,:]]
-        x = torch.cat(x)
+        x = [x0, x1[:,-1,:]]
+        x = torch.cat(x, dim=1)
         x = self.l1(x)
         return x
