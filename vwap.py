@@ -70,7 +70,7 @@ if arg.agent == 'baseline':
 elif arg.agent == 'linear':
     criterion = nn.MSELoss
     optimizer = torch.optim.Adam
-    agent = Linear(envs[0].observation_space_n, envs[0].action_space_n, criterion=criterion, optimizer=criterion).cuda()
+    agent = Linear(envs[0].observation_space_n, envs[0].action_space_n, criterion=criterion, optimizer=optimizer)
     
     if arg.mode == 'train':
         if os.path.exists(modeldir) and not arg.overwrite:
@@ -94,7 +94,7 @@ elif arg.agent == 'linear':
 elif arg.agent == 'lstm':
     criterion = nn.MSELoss
     optimizer = torch.optim.Adam
-    agent = LSTM(envs[0].observation_space_n, envs[0].action_space_n, criterion=criterion, optimizer=criterion).cuda()
+    agent = LSTM(envs[0].observation_space_n, envs[0].action_space_n, criterion=criterion, optimizer=optimizer)
     
     if arg.mode == 'train':
         if os.path.exists(modeldir) and not arg.overwrite:
