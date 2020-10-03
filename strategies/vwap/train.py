@@ -21,7 +21,6 @@ class ReplayMemory(object):
     def push(self, *args):
         if len(self._memory) < self._capacity:
             self._memory.append(None)
-        # args = [torch.tensor(arg).view(1,-1) for arg in args]
         self._memory[self._position] = self._mdp(*args)
         self._position = (self._position + 1) % self._capacity
 

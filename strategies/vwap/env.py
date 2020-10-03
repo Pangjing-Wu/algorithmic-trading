@@ -167,7 +167,7 @@ class HardConstrainTranche(BasicHardConstrainTranche):
         prices = self._data.get_quote(self._t)[self._level_space].iloc[0].values.tolist()
         state  = [self._t / 1000, self._task['start'] / 1000, self._task['end'] / 1000,
                   self._task['goal'], sum(self._filled['size']), *prices]
-        return np.array(state)
+        return np.array(state, dtype=np.float32)
 
 
 # 2.5.0 version env
@@ -224,9 +224,9 @@ class RecurrentHardConstrainTranche(BasicHardConstrainTranche):
                 break
         padnum = self._historical_quote_num - len(quotes)
         quotes = np.pad(quotes, ((padnum,0), (0,0)))
-        state  = [self._t / 1000, self._task['start'] / 1000, self._task['end'] / 1000, self._task['goal'], sum(self._filled['size'])]
-        state  = (state, quotes)
-        return np.array(state, dtype=np.float32)
+        state  = [[self._t / 1000, self._task['start'] / 1000, self._task['end'] / 1000, self._task['goal'], sum(self._filled['size'])]]
+        state  = [np.array(state, dtype=np.float32), np.array(quotes, dtype=np.float32)]
+        return np.array(state, dtype=object)
 
 
 class SemiHardConstrainTranche(BasicTranche):

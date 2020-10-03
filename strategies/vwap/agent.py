@@ -1,6 +1,6 @@
+import numpy as np
 import torch
 import torch.nn as nn
-
 
 INF = 0x7FFFFFF
 
@@ -70,12 +70,13 @@ class LSTM(nn.Module):
         nn.init.uniform_(self.l1.weight, 0, 0.001)
         
     def forward(self, x):
+        x = np.array(x)
         if x.ndim == 1:
             x0 = torch.tensor(x[0])
-            x1 = torch.tensor(x[1])
+            x1 = torch.tensor(x[1]).unsqueeze(0)
         elif x.ndim == 2:
-            x0 = torch.tensor(x[:,0])
-            x1 = torch.tensor(x[:,1])
+            x0 = torch.tensor(np.vstack(x[:,0]), dtype=torch.float32)
+            x1 = torch.tensor(np.array([*x[:,1]]), dtype=torch.float32)
         else:
             raise KeyError('unexcepted dimension of x.')
         x1, _ = self.lstm(x1)

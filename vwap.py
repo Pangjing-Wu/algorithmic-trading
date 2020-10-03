@@ -41,7 +41,7 @@ for i in range(arg.pre_days, len(trades)):
 
 if arg.env == 'hard_constrain':
     env = HardConstrainTranche
-elif arg.env == 'histrical_hard_constrain':
+elif arg.env == 'historical_hard_constrain':
     env = HistoricalHardConstrainTranche
     for param in env_params:
         param['historical_quote_num'] = arg.hist_quote
