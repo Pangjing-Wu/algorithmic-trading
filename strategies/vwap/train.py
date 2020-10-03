@@ -7,6 +7,9 @@ import torch
 import numpy as np
 
 
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
 class ReplayMemory(object):
 
     def __init__(self, capacity):
@@ -56,8 +59,8 @@ class BaselineTraining(object):
 class QLearning(object):
 
     def __init__(self, agent, epsilon=0.1, gamma=0.99, delta_eps=0.95, lr=0.1, batch=128, memory=10000):
-        self._policy_net = agent
-        self._target_net = copy.deepcopy(agent)
+        self._policy_net = agent.to(DEVICE)
+        self._target_net = copy.deepcopy(agent).to(DEVICE)
         self._epsilon    = epsilon
         self._gamma      = gamma
         self._delta_eps  = delta_eps
@@ -98,8 +101,8 @@ class QLearning(object):
                     self._memory.push(s, a, s1, r)
                     if len(self._memory) >= self._batch:
                         batch = self._memory.sample(self._batch)
-                        action_batch = torch.tensor(batch.action).view(-1,1)
-                        reward_batch = torch.tensor(batch.reward).view(-1,1)
+                        action_batch = torch.tensor(batch.action, device=DEVICE).view(-1,1)
+                        reward_batch = torch.tensor(batch.reward, device=DEVICE).view(-1,1)
                         Q  = self._policy_net(batch.state).gather(1, action_batch)
                         Q1 = self._target_net(batch.next_state).argmax().detach()
                         Q_target = self._gamma * Q1 + reward_batch
