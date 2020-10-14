@@ -1,0 +1,10 @@
+{
+    "path":{
+        "datadir":  "/data/al2/",
+        "savedir":  "./results/vwap",
+        "cachedir": "./data/.cache"
+    },
+    "train":{
+        
+    }
+}

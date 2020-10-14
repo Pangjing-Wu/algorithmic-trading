@@ -13,12 +13,11 @@ def parse_args(strategy):
 		parser.add_argument('--episodes', default=400, type=int, help='episode number of training')
 		parser.add_argument('--pre_days', default=20, type=int, help='data of pre n days for calculating volume profile')
 		parser.add_argument('--exchange' , default='general', type=str, help='specify exchange')
-		parser.add_argument('--time_range', default=[34200000, 41400000, 46800000, 53700000], type=int, nargs='+', help='legal time range of transaction')
+		parser.add_argument('--time_range', default=[34200000, 41400000, 46800000, 53700000], type=list, nargs='+', help='legal time range of transaction')
 		parser.add_argument('--interval'  , default=1800000, type=int, help='time length of each tranche')
 		parser.add_argument('--tranche_id', default=0, type=int, help='specify tranche of each day')
 		parser.add_argument('--overwrite', action='store_true', help='train a new model and overwrite existed')
 		parser.add_argument('--hist_quote', default=5, type=int, help='specify number of historical quote in state')
-		parser.add_argument('--save_dir', '--model_dir', default='./results', type=str, help='direction of load/save models')
 		parser.add_argument('--wait_t', default=3, type=int, help='wait time before traing')
 	else:
 		raise ValueError('Unknown strategy.')

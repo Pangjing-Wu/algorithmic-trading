@@ -1,4 +1,5 @@
 import glob
+import json
 import os
 
 import pandas as pd
@@ -11,34 +12,43 @@ from strategies.vwap.agent import *
 from strategies.vwap.env import *
 from strategies.vwap.train import BaselineTraining, QLearning
 from tickdata.datatype import TickData
-from utils.statistic import group_trade_volume_by_time, tranche_num
+from utils.cache import VolumeProfileCache
+from utils.statistic import distribute_task, tranche_num, volume_profile
 
-
-arg = parse_args(strategy='vwap')
+arg  = parse_args(strategy='vwap')
+path = json.load(open('./config/vwap.json', 'r'))['path']
 
 n_tranche = tranche_num(arg.time_range, arg.interval)
-modeldir  = os.path.join(arg.save_dir, arg.stock, arg.env, arg.agent, '%d-tranches'% n_tranche, 'task%d_best.pth' %arg.tranche_id)
+modeldir  = os.path.join(path['savedir'], arg.stock, arg.env, arg.agent,
+                         '%d-tranches'% n_tranche, 'task%d_best.pth' %arg.tranche_id)
 
-quotefiles = sorted(glob.glob('./data/%s/quote/*.csv' % arg.stock))
-tradefiles = sorted(glob.glob('./data/%s/trade/*.csv' % arg.stock))
+quotefiles = sorted(glob.glob(os.path.join(path['datadir'], arg.stock, 'quote/*.csv')))
+tradefiles = sorted(glob.glob(os.path.join(path['datadir'], arg.stock, 'trade/*.csv')))
 quotes = [pd.read_csv(file) for file in quotefiles]
 trades = [pd.read_csv(file) for file in tradefiles]
+dates  = [os.path.basename(file).rstrip('.csv') for file in quotefiles]
 datas  = [TickData(quote, trade) for quote, trade in zip(quotes, trades)]
 
-env_params = list()
+env_params   = list()
+volume_cache = VolumeProfileCache(path['cachedir'], arg.stock, n_tranche, arg.pre_days)
 for i in range(arg.pre_days, len(trades)):
+    profile = volume_cache.load(dates[i])
+    if profile is None:
+        profile = volume_profile(trades[i-arg.pre_days:i], arg.time_range, arg.interval)
+        volume_cache.push(dates[i], profile)
+    tasks = distribute_task(arg.goal, profile)
     param = dict(
         tickdata=datas[i], 
         level=arg.level, 
         side=arg.side,
-        volume_profile = group_trade_volume_by_time(trades[i-arg.pre_days:i], arg.time_range, arg.interval)
+        task=tasks.loc[arg.tranche_id]
         )
     if arg.exchange == 'general':
         param['transaction_engine'] = GeneralExchange(datas[i], arg.wait_t).transaction_engine
     else:
         raise KeyError('unkonwn exchange.')
     env_params.append(param)
-
+    
 if arg.env == 'hard_constrain':
     env = HardConstrainTranche
 elif arg.env == 'historical_hard_constrain':
@@ -52,7 +62,7 @@ elif arg.env == 'recurrent_hard_constrain':
 else:
     raise KeyError('unknown environment.')
 
-envs = [GenerateTranches(env, arg.goal, **param)[arg.tranche_id] for param in env_params]
+envs = [env(**param) for param in env_params]
 
 if arg.agent == 'baseline':
     agent = Baseline(arg.side)
