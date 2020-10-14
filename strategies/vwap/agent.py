@@ -4,8 +4,7 @@ import torch.nn as nn
 
 
 INF = 0x7FFFFFF
-DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class Baseline(object):
     
@@ -57,7 +56,7 @@ class Linear(nn.Module):
     
     def forward(self, x):
         x = x if torch.is_tensor(x) else torch.tensor(x)
-        x = x.to(DEVICE)
+        x = x.to(device)
         x = self.l1(x)
         return x
 
@@ -76,11 +75,11 @@ class LSTM(nn.Module):
     def forward(self, x):
         x = np.array(x)
         if x.ndim == 1:
-            x0 = torch.tensor(x[0], device=DEVICE)
-            x1 = torch.tensor(x[1], device=DEVICE).unsqueeze(0)
+            x0 = torch.tensor(x[0], device=device)
+            x1 = torch.tensor(x[1], device=device).unsqueeze(0)
         elif x.ndim == 2:
-            x0 = torch.tensor(np.vstack(x[:,0]), device=DEVICE, dtype=torch.float32)
-            x1 = torch.tensor(np.array([*x[:,1]]), device=DEVICE, dtype=torch.float32)
+            x0 = torch.tensor(np.vstack(x[:,0]), device=device, dtype=torch.float32)
+            x1 = torch.tensor(np.array([*x[:,1]]), device=device, dtype=torch.float32)
         else:
             raise KeyError('unexcepted dimension of x.')
         x1, _ = self.lstm(x1)
