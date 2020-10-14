@@ -117,7 +117,8 @@ class BasicTranche(abc.ABC):
         if self._t == self._time[-1] or sum(self._filled['size']) == self._task['goal']:
             self._final = True
         self._postprocess()
-        return (self._state(), self._reward(), self._final)
+        state = None if self._final else self._state()
+        return (state, self._reward(), self._final)
 
     def _action2order(self, action:int):
         time  = self._t
