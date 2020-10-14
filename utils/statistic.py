@@ -3,6 +3,9 @@ from typing import List, Union
 import pandas as pd
 
 
+argmax = lambda a: [i for i, val in enumerate(a) if (val == max(a))][0]
+
+
 def group_trade_by_price(trade:pd.DataFrame)->pd.DataFrame:
 
     if trade is None:
@@ -13,10 +16,10 @@ def group_trade_by_price(trade:pd.DataFrame)->pd.DataFrame:
         return trade[['price', 'size']].groupby('price').sum().reset_index()
 
 
-def group_trade_volume_by_time(trades:Union[pd.DataFrame, List[pd.DataFrame]],
-                               time_range:List[int], interval:int=0) -> pd.DataFrame:
+def volume_profile(trades:Union[pd.DataFrame, List[pd.DataFrame]],
+                  time_range:List[int], interval=0) -> pd.DataFrame:
     
-    volumes = {'start':[], 'end':[], 'volume':[]}
+    volumes = dict(start=list(), end=list(), volume=list())
 
     if len(time_range) < 2 and len(time_range) % 2 != 0:
         raise KeyError("argument time should have 2 or multiples of 2 elements.")
@@ -67,3 +70,11 @@ def tranche_num(time_range:List[int], interval):
         raise KeyError('interval must not be negative.')
     
     return num
+
+
+def distribute_task(goal:int, profile:pd.DataFrame):
+    ratio = [v / (profile['volume'].sum() + 1e-8) for v in profile['volume']]
+    subgoals = [int(goal * r // 100 * 100) for r in ratio]
+    subgoals[argmax(subgoals)] += goal - sum(subgoals)
+    tasks = pd.DataFrame(dict(start=profile['start'], end=profile['end'], goal=subgoals))
+    return tasks

@@ -4,5 +4,6 @@ __pycache__
 temp
 test/results
 results
-data
+data/testdata
+data/.cache
 logs
