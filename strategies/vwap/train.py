@@ -103,9 +103,13 @@ class QLearning(object):
                         batch = self._memory.sample(self._batch)
                         action_batch = torch.tensor(batch.action, device=device).view(-1,1)
                         reward_batch = torch.tensor(batch.reward, device=device).view(-1,1)
+                        non_final_mask   = torch.tensor([s is not None for s in batch.next_state], 
+                                                       device=device, dtype=torch.bool)          
+                        non_final_next_s = torch.tensor([s for s in batch.next_state if s is not None], device=device)
                         Q  = self._policy_net(batch.state).gather(1, action_batch)
-                        Q1 = self._target_net(batch.next_state).argmax().detach()
-                        Q_target = self._gamma * Q1 + reward_batch
+                        Q1 = torch.zeros(self._batch, device=device)
+                        Q1[non_final_mask] = self._target_net(non_final_next_s).max(1)[0].detach()
+                        Q_target = self._gamma * Q1.view(-1,1) + reward_batch
                         loss = self._criterion(Q, Q_target)
                         self._optimizer.zero_grad()
                         loss.backward()
