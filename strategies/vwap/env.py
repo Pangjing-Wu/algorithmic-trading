@@ -55,8 +55,8 @@ class BasicTranche(abc.ABC):
         return self._t
 
     @property
-    def volume_profile(self):
-        return self._volume_profile
+    def filled(self):
+        return self._filled
 
     @property
     def vwap(self):
