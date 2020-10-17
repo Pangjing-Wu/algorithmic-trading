@@ -16,8 +16,10 @@ class VolumeProfileCache(object):
 
     def __del__(self):
         cache = pd.read_csv(self._file, index_col=['date', 'i_tranche'])
-        cache = cache[~cache.index.duplicated(keep='first')]
-        cache.to_csv(self._file, mode='w')
+        index = cache.index.duplicated(keep='first')
+        if any(index):
+            cache = cache[~index]
+            cache.to_csv(self._file, mode='w')
 
     def load(self, date:str):
         try:
