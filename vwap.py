@@ -91,7 +91,7 @@ elif arg.agent == 'linear':
     elif arg.mode == 'test':
         env_test = envs[-1]
         if os.path.exists(modeldir):
-            agent.load_state_dict(torch.load(modeldir))
+            agent.load_state_dict(torch.load(modeldir, map_location='cpu'))
         else:
             raise FileNotFoundError('cannot find model file in %s' % modeldir)
         trainer = QLearning(agent)
@@ -115,7 +115,7 @@ elif arg.agent == 'lstm':
     elif arg.mode == 'test':
         env_test = envs[-1]
         if os.path.exists(modeldir):
-            agent.load_state_dict(torch.load(modeldir))
+            agent.load_state_dict(torch.load(modeldir, map_location='cpu'))
         else:
             raise FileNotFoundError('cannot find model file in %s' % modeldir)
         trainer = QLearning(agent)
