@@ -15,7 +15,7 @@ from tickdata.datatype import TickData
 from utils.cache import VolumeProfileCache
 from utils.statistic import distribute_task, tranche_num, volume_profile
 
-arg   = parse_args(strategy='vwap')
+arg   = parse_args(strategy='vwap', mode='train/test')
 config = json.load(open('./config/vwap.json', 'r'))
 
 n_tranche = tranche_num(config['env']['time_range'], config['env']['interval'])
@@ -55,19 +55,19 @@ for i in range(config['env']['volume_pre_day'], len(trades)):
     env_params.append(param)
     
 if arg.env == 'hard_constrain':
-    env = HardConstrainTranche
+    environment = HardConstrainTranche
 elif arg.env == 'historical_hard_constrain':
-    env = HistoricalHardConstrainTranche
+    environment = HistoricalHardConstrainTranche
     for param in env_params:
-        param['historical_quote_num'] = arg.hist_quote
+        param['historical_quote_num'] = config['env']['hist_quote']
 elif arg.env == 'recurrent_hard_constrain':
-    env = RecurrentHardConstrainTranche
+    environment = RecurrentHardConstrainTranche
     for param in env_params:
-        param['historical_quote_num'] = arg.hist_quote
+        param['historical_quote_num'] = config['env']['hist_quote']
 else:
     raise KeyError('unknown environment.')
 
-envs  = [env(**param) for param in env_params]
+envs  = [environment(**param) for param in env_params]
 split = int(len(envs) * config['train']['train_test_split'])
 
 if arg.agent == 'baseline':
