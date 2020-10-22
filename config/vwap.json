@@ -4,7 +4,16 @@
         "savedir":  "./results/vwap",
         "cachedir": "./data/.cache"
     },
+    "env":{
+        "exchange": "general",
+        "interval": 1800000,
+        "time_range": [34200000, 41400000, 46800000, 53700000],
+        "volume_pre_day": 20,
+        "wait_t": 3,
+        "hist_quote": 5
+    },
     "train":{
-        
+        "train_test_split": 0.6,
+        "val_split": 0.2
     }
 }
