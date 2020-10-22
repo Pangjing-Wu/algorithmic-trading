@@ -4,6 +4,7 @@ import sys
 import numpy as np
 import pandas as pd
 
+from utils.time import stamp2time
 from utils.errors import *
 
 
@@ -110,9 +111,10 @@ class BasicTranche(abc.ABC):
         else:
             self._order['time'] = self._t
         self._order, filled = self._engine(self._order)
-        if sum(filled['size']) % 100 == 0:
-            self._filled['price'] += filled['price']
+        if sum(filled['size']) % 100 == 0 and sum(filled['size']) > 0:
+            self._filled['time'].append(stamp2time(self._t))
             self._filled['size']  += filled['size']
+            self._filled['price'] += filled['price']
         self._t = next(self._iter)
         if self._t == self._time[-1] or sum(self._filled['size']) == self._task['goal']:
             self._final = True
@@ -151,8 +153,10 @@ class BasicHardConstrainTranche(BasicTranche, abc.ABC):
     def _postprocess(self):
         if self._final == True and sum(self._filled['size']) < self._task['goal']:
             market_order_level = 'bid1' if self._side == 'buy' else 'ask1'
-            self._filled['price'].append(self._data.get_quote(self._t)[market_order_level].iloc[0])
+            self._filled['time'].append(stamp2time(self._t))
             self._filled['size'].append(self._task['goal'] - sum(self._filled['size']))
+            self._filled['price'].append(self._data.get_quote(self._t)[market_order_level].iloc[0])
+            
 
 # 2.0.0 version env
 class HardConstrainTranche(BasicHardConstrainTranche):
