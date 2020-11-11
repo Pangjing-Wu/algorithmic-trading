@@ -33,7 +33,7 @@ class ReplayMemory(object):
         return sample
 
 
-class BaselineTraining(object):
+class MicroBaseline(object):
 
     def __init__(self, agent):
         self._agent = agent
@@ -105,7 +105,7 @@ class QLearning(object):
                         reward_batch = torch.tensor(batch.reward, device=device).view(-1,1)
                         non_final_mask   = torch.tensor([s is not None for s in batch.next_state], 
                                                        device=device, dtype=torch.bool)          
-                        non_final_next_s = torch.tensor([s for s in batch.next_state if s is not None], device=device)
+                        non_final_next_s = [s for s in batch.next_state if s is not None]
                         Q  = self._policy_net(batch.state).gather(1, action_batch)
                         Q1 = torch.zeros(self._batch, device=device)
                         Q1[non_final_mask] = self._target_net(non_final_next_s).max(1)[0].detach()

@@ -34,7 +34,6 @@ tasks  = distribute_task(arg.goal, profile)
 print('intraday volume profile:')
 print(tasks)
 
-
 if config['env']['exchange'] == 'general':
     engine = GeneralExchange(data, config['env']['wait_t']).transaction_engine
 else:
