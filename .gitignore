@@ -2,7 +2,7 @@ __pycache__
 .vscode
 .DS_Store
 temp
-test/results
+test
 results
 data/testdata
 data/.cache
