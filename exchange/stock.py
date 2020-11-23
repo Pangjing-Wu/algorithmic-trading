@@ -1,129 +1,129 @@
 import numpy as np
 
-class GeneralExchange(object):
+from .order import ClientOrder, ExchangeOrder
 
-    def __init__(self, tickdata, wait_trade):
+
+class AShareExchange(object):
+
+    def __init__(self, tickdata, wait_trade=0):
         '''
         arguments:
         ----------
             tickdata: TickData, tick-level data.
-            wait_trade: int, waiting number of trade records before
-                transaction.
+            wait_trade: int, waiting trade number before transaction.
         '''
-
         if wait_trade < 0:
-            raise KeyError("wait_trade must greater than or equal to 0.")
+            raise ValueError("wait_trade must be non-negative.")
+        self.__data  = tickdata
+        self.__wait  = wait_trade
+        self.__order = None
+        self.reset()
 
-        self._data = tickdata
-        self._wait_trade = wait_trade
-        self._next_level = lambda level: level[:3] + str(int(level[3:]) + 1)
+    def __str__(self):
+        if self.__order is None:
+            return self.__order
+        else:
+            return self.__order.__str__()
+
+    def reset(self):
+        self.__time = [-1]
+
+    def issue(self, code=0, order:ClientOrder=None):
+        if code == 0:
+            pass
+        elif code == 1:
+            self.__issue_order(order)
+        elif code == 2:
+            self.__cancel_order()
+        else:
+            raise ValueError('unknown operation code.')
     
-    def transaction_engine(self, order)->tuple:
-        '''
-        arguments:
-        ----------
-        order: dict, simulated order issued by agent,
-            keys are ('time', 'side', 'price', 'size', 'pos').
+    def step(self, time):
+        self.__check_time(time)
+        self.__t = time
+        self.__time.append(time)
+        return self.__transaction()
+    
+    def __issue_order(self, order):
+        self.__check_time(order.time)
+        if self.__order is None:
+            self.__order = ExchangeOrder(order, self.__wait)
+        else:
+            raise RuntimeError("exchange can only contain 1 order, "
+                               "cancel previous order first.")
 
-        returns:
-        --------
-        order: dict, remaining orders，
-            keys are ('time', 'side', 'price', 'size', 'pos').
-        filled: dict, filled orders
-            keys are ('price', 'size').
-        '''
+    def __cancel_order(self):
+        self.__order = None
 
-        self._check_order(order)
-
-        quote, trade = self._query_data(order['time'])
-
-        filled = {'time':[], 'price': [], 'size': []}
-
-        if order['pos'] == -1:
-            order['pos'] = self._wait_trade
-
-        order_level = quote[quote['price'] == order['price']]
-        
-        # if order price is not in quote.
+    def __transaction(self):
+        if self.__order is None:
+            return None
+        quote = self.__data.quote.get(self.__t).to_board()
+        trade = self.__data.trade.between(
+            self.__t,
+            self.__data.quote.next_time_of(self.__t)
+            )
+        order_level = quote[quote['price'] == self.__order.price]
         if order_level.empty:
-            return (order, filled)
+            return self.__order # order price is not in quote
         else:
             order_level = order_level.index[0]
-
         # case 1, transact directly.
-        if order['side'] == 'buy' and order_level[:3] == 'ask':
-            l = 'ask1'
-            order['pos'] = 0
-
+        if self.__order.side == 'buy' and order_level[:3] == 'ask':
+            level = 'ask1'
+            self.__order.update_pos(0)
         # case 2, wait in trading queue.    
-        elif order['side'] == 'buy' and order_level[:3] == 'bid':
-            l = order_level
-            order['pos'] = self._update_pos_by_trade(order, trade)
-
+        elif self.__order.side == 'buy' and order_level[:3] == 'bid':
+            level = order_level
+            self.__order.update_pos(self.__update_pos(self.__order, trade))
         # case 3, transact directly.        
-        elif order['side'] == 'sell' and order_level[:3] == 'bid':
-            l = 'bid1'
-            order['pos'] = 0
-
+        elif self.__order.side == 'sell' and order_level[:3] == 'bid':
+            level = 'bid1'
+            self.__order.update_pos(0)
         # case 4, wait in trading queue.    
-        elif order['side'] == 'sell' and order_level[:3] == 'ask':
-            l = order_level
-            order['pos'] = self._update_pos_by_trade(order, trade)
-
+        elif self.__order.side == 'sell' and order_level[:3] == 'ask':
+            level = order_level
+            self.__order.update_pos(self.__update_pos(self.__order, trade))
         else:
-            raise Exception("Unexcepted error occoured in calculating order position.")
-        
+            raise RuntimeError("unknown error occured during transaction.") 
         # execute orders.
-        if order['pos'] == 0:
-            while l <= order_level:
-                if quote.loc[l, 'size'] <= 0:
-                    l = self._next_level(l)
-                    continue
-                elif quote.loc[l, 'size'] < order['size']:
-                    filled['time'].append(order['time'])
-                    filled['price'].append(quote.loc[l, 'price'])
-                    filled['size'].append(quote.loc[l, 'size'])
-                    order['size'] -= quote.loc[l, 'size']
-                    l = self._next_level(l)
-                else:
-                    filled['time'].append(order['time'])
-                    filled['price'].append(quote.loc[l, 'price'])
-                    filled['size'].append(order['size'])
-                    order['size'] = 0
-                    break
-        return (order, filled)
+        while self.__order.pos == 0 and level <= order_level:
+            if quote.loc[level, 'size'] <= 0:
+                level = self.__next_level(level)
+            elif quote.loc[level, 'size'] < self.__order.remain:
+                self.__order.update_filled(
+                    time=self.__t,
+                    price=quote.loc[level, 'price'],
+                    size=quote.loc[level, 'size']
+                    )
+                level = self.__next_level(level)
+            else:
+                self.__order.update_filled(
+                    time=self.__t,
+                    price=quote.loc[level, 'price'],
+                    size=self.__order.remain
+                    )
+                break
+        ret = self.__order
+        if self.__order.remain == 0:
+            self.__order = None
+        return ret
 
-    def _query_data(self, time):
-        if time not in self._data.quote_timeseries:
-            raise KeyError("order's time not in range, "\
-                           "cannot find corresponding data.")
-        quote = self._data.quote_board(time)
-        trade = self._data.get_trade_between(time)
-        return quote, trade
+    def __next_level(self, level:str)->str:
+        level = level[:3] + str(int(level[3:]) + 1)
+        return level
 
-    def _update_pos_by_trade(self, order, trade) -> int:
-        pos = order['pos']
-        for _ in trade[trade['price'] == order['price']].index:
+    def __check_time(self, time):
+        if time not in self.__data.quote.timeseries:
+            raise ValueError('illegal time, cannot find in quote timeseries.')
+        if time <= max(self.__time):
+            raise RuntimeError('time reverses, current time must be not happend.')
+
+    def __update_pos(self, order, trade):
+        pos = order.pos
+        for _ in trade[trade['price'] == order.price].index:
             if pos == 0:
                 break
             else:
                 pos -= 1
         return pos
-
-    def _check_order(self, order):
-        if type(order) != dict:
-            raise TypeError("argument type of order must be dict.")
-        if order['side'] not in ['buy', 'sell']:
-            raise KeyError("order['side'] value must be 'buy' or 'sell'.")
-        if type(order['time']) not in [int, np.int32, np.int64]:
-            raise TypeError("argument type of order['time'] must be int.")
-        if type(order['price']) not in [int, np.int32, np.int64, 
-                                        float, np.float32, np.float64]:
-            raise TypeError("argument type of order['price'] "\
-                            "must be int or float.")
-        if order['size'] < 0:
-            raise KeyError("order['size'] value must be positive integer or 0.")                    
-        if type(order['size']) not in [int, np.int32, np.int64]:
-            raise TypeError("argument type of order['size'] must be int.")
-        if type(order['pos']) not in [int, np.int32, np.int64]:
-            raise TypeError("argument type of order['pos'] must be int.")
