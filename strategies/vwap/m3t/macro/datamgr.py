@@ -4,8 +4,7 @@ from typing import List
 import torch
 import numpy as np
 
-sys.path.append('./')
-from strategies.vwap.m3t.macro.profile import volume_profile
+from .profile import volume_profile
 
 
 class SupervisedData(object):
