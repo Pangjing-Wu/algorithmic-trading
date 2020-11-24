@@ -27,6 +27,7 @@ class AShareExchange(object):
 
     def reset(self):
         self.__last_time = -1
+        return self
 
     def issue(self, code=0, order:ClientOrder=None):
         if code == 0:
@@ -58,7 +59,7 @@ class AShareExchange(object):
     def __cancel_order(self):
         self.__order = None
 
-    def __transaction(self):
+    def __transaction(self)->ExchangeOrder:
         quote = self.__data.quote.get(self.__t).to_board()
         trade = self.__data.trade.between(
             self.__t,
@@ -99,6 +100,8 @@ class AShareExchange(object):
             if size <= 0:
                 level = self.__next_level(level)
             elif size < self.__order.remain:
+                # NOTE the minimum transaction unit is 1 lot.
+                size = size // 100 * 100
                 self.__order.update_filled(self.__t, price, size)
                 level = self.__next_level(level)
             else:
