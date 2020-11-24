@@ -26,7 +26,7 @@ class AShareExchange(object):
             return self.__order.__str__()
 
     def reset(self):
-        self.__time = [-1]
+        self.__last_time = -1
 
     def issue(self, code=0, order:ClientOrder=None):
         if code == 0:
@@ -41,8 +41,11 @@ class AShareExchange(object):
     def step(self, time):
         self.__check_time(time)
         self.__t = time
-        self.__time.append(time)
-        return self.__transaction()
+        self.__last_time = time
+        if self.__order is None:
+            return None
+        else:
+            return self.__transaction()
     
     def __issue_order(self, order):
         self.__check_time(order.time)
@@ -56,8 +59,6 @@ class AShareExchange(object):
         self.__order = None
 
     def __transaction(self):
-        if self.__order is None:
-            return None
         quote = self.__data.quote.get(self.__t).to_board()
         trade = self.__data.trade.between(
             self.__t,
@@ -75,7 +76,7 @@ class AShareExchange(object):
         # case 2, wait in trading queue.    
         elif self.__order.side == 'buy' and order_level[:3] == 'bid':
             level = order_level
-            self.__order.update_pos(self.__update_pos(self.__order, trade))
+            self.__update_pos_by_trade(trade)
         # case 3, transact directly.        
         elif self.__order.side == 'sell' and order_level[:3] == 'bid':
             level = 'bid1'
@@ -83,30 +84,28 @@ class AShareExchange(object):
         # case 4, wait in trading queue.    
         elif self.__order.side == 'sell' and order_level[:3] == 'ask':
             level = order_level
-            self.__order.update_pos(self.__update_pos(self.__order, trade))
+            self.__update_pos_by_trade(trade)
         else:
             raise RuntimeError("unknown error occured during transaction.") 
         # execute orders.
         while self.__order.pos == 0 and level <= order_level:
-            if quote.loc[level, 'size'] <= 0:
+            price = quote.loc[level, 'price']
+            if (self.__order.side == 'buy' and order_level[:3] == 'ask') or (
+                self.__order.side == 'sell' and order_level[:3] == 'bid'):
+                size = quote[quote['price']==price]['size'].sum()
+            if (self.__order.side == 'buy' and order_level[:3] == 'bid') or (
+                self.__order.side == 'sell' and order_level[:3] == 'ask'):
+                size = trade[trade['price']==price]['size'].sum()
+            if size <= 0:
                 level = self.__next_level(level)
-            elif quote.loc[level, 'size'] < self.__order.remain:
-                self.__order.update_filled(
-                    time=self.__t,
-                    price=quote.loc[level, 'price'],
-                    size=quote.loc[level, 'size']
-                    )
+            elif size < self.__order.remain:
+                self.__order.update_filled(self.__t, price, size)
                 level = self.__next_level(level)
             else:
-                self.__order.update_filled(
-                    time=self.__t,
-                    price=quote.loc[level, 'price'],
-                    size=self.__order.remain
-                    )
+                self.__order.update_filled(self.__t, price, self.__order.remain)
                 break
         ret = self.__order
-        if self.__order.remain == 0:
-            self.__order = None
+        self.__order = self.__order if self.__order.remain else None
         return ret
 
     def __next_level(self, level:str)->str:
@@ -116,14 +115,14 @@ class AShareExchange(object):
     def __check_time(self, time):
         if time not in self.__data.quote.timeseries:
             raise ValueError('illegal time, cannot find in quote timeseries.')
-        if time <= max(self.__time):
+        if time <= self.__last_time:
             raise RuntimeError('time reverses, current time must be not happend.')
 
-    def __update_pos(self, order, trade):
-        pos = order.pos
-        for _ in trade[trade['price'] == order.price].index:
+    def __update_pos_by_trade(self, trade):
+        pos = self.__order.pos
+        for _ in trade[trade['price'] == self.__order.price].index:
             if pos == 0:
                 break
             else:
                 pos -= 1
-        return pos
+        self.__order.update_pos(pos)
