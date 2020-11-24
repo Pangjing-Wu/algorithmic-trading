@@ -23,12 +23,17 @@ class MetaQuote(pd.DataFrame):
         return self['time'].iloc[0]
 
     @property
-    def level(self):
-        return self.__level
+    def size(self):
+        index = [self.__level2size(l) for l in self.__level]
+        return self[index].iloc[0]
 
     @property
-    def n_level(self):
-        return len(self.__level) // 2
+    def price(self):
+        return self[self.__level].iloc[0]
+
+    @property
+    def level(self):
+        return self.__level
 
     def to_board(self):
         level = self.__level[::-1]
@@ -131,6 +136,10 @@ class Quote(BasicSeries):
         self.__level = None
         self.__level = level
 
+    @property
+    def level(self):
+        return self.__level
+
     def _get_meta(self, df:pd.DataFrame)->MetaQuote:
         return MetaQuote(df, self.date, self.__level)
 
@@ -174,6 +183,13 @@ class TickData(object):
     @property
     def trade(self):
         return self.__trade
+
+    def between(self, t1, t2):
+        return TickData(
+            quote=self.__quote.between(t1, t2),
+            trade=self.__trade.between(t1, t2),
+            date=self.__date
+            )
 
     def __get_level(self, quote:pd.DataFrame)->list:
         asks = quote.filter(like='ask').columns.values.tolist()
