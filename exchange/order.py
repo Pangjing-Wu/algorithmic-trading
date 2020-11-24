@@ -1,4 +1,6 @@
 import numpy as np
+import pandas as pd
+
 
 class ClientOrder(object):
 
@@ -15,6 +17,10 @@ class ClientOrder(object):
 
     def __hash__(self):
         return hash(str(self.__order))
+
+    @property
+    def id(self):
+        return self.__hash__()
 
     @property
     def time(self):
@@ -45,6 +51,8 @@ class ClientOrder(object):
             raise TypeError("order size must be int.")
         if size <= 0:
             raise ValueError("order size must be positive.")
+        if side == 'buy' and size % 100 != 0:
+            raise ValueError("buying order size must be multiples of 100.")
 
 
 class ExchangeOrder(object):
@@ -54,7 +62,7 @@ class ExchangeOrder(object):
         self.__pos    = init_pos
         self.__remain = order.size
         self.__filled  = dict(time=[], price=[], size=[])
-
+    
     def __str__(self):
         ret = "order: %s\nqueue position: %s\nfilled: %s\nremain: %d" % (
                self.__order, self.__pos, self.__filled, self.__remain
@@ -65,7 +73,11 @@ class ExchangeOrder(object):
         return other == self.__hash__()
 
     def __hash__(self):
-        return hash(self.__order)
+        return self.__order.id
+
+    @property
+    def id(self):
+        return self.__hash__()
             
     @property
     def time(self):
@@ -93,7 +105,7 @@ class ExchangeOrder(object):
 
     @property
     def filled(self):
-        return self.__filled
+        return pd.DataFrame(self.__filled)
 
     def update_pos(self, i):
         self.__pos = max(0, i)
