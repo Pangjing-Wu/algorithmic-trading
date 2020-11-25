@@ -4,13 +4,11 @@ from typing import List, Union, Tuple
 import numpy as np
 import pandas as pd
 
-sys.path.append('./')
 from data.tickdata.source.csv import CSVDataset
-from utils.argcheck import check_pair_list
 
 
 def get_tranche_time(time_range:List[int], interval:int)->Tuple[int]:
-    check_pair_list(time_range)
+    _check_pair_in_list(time_range)
     times = list()
     for i in range(0, len(time_range), 2):
         if interval > 0:
@@ -49,3 +47,8 @@ def distribute_task(goal:int, profile_ratio:pd.DataFrame):
         goal=subgoals
         )
     return pd.DataFrame(tasks)
+
+
+def _check_pair_in_list(x):
+    if len(x) < 2 and len(x) % 2 != 0:
+        raise ValueError("argument should contain 2 or multiples of 2 elements.")
