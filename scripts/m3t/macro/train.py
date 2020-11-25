@@ -13,7 +13,7 @@ from strategies.vwap.m3t.model import LSTM, MLP, Linear
 
 
 def parse_args():
-    parser = argparse.ArgumentParser('train deep macro tader')
+    parser = argparse.ArgumentParser('train deep macro trader')
     parser.add_argument('--cuda', action='store_true', help='use cuda in training')
     parser.add_argument('--stock', type=str, help='stock code')
     parser.add_argument('--model', type=str, help='macro model {Linear/MLP/LSTM}')
@@ -63,15 +63,15 @@ def train(model, model_dir, train_data, val_data,
         val_pred = model(X)
         val_loss = criterion(y, val_pred)
         print('Epoch: %d/%d, ' % (e, start_epoch + epoch), end='')
-        print('train MSE = %.3f, validation MSE = %.3f.' % (loss, val_loss))
+        print('train MSE = %.5f, validation MSE = %.5f.' % (loss, val_loss))
         if checkpoint > 0 and e % checkpoint == 0:
             save_weight(epoch=e)
         if val_loss < best_val_loss:
             best_val_loss = val_loss
             save_weight(epoch=-1)
-            print('Get best model with MSE loss %.3f! saved.' % best_val_loss)
+            print('Get best model with MSE loss %.5f! saved.' % best_val_loss)
         else:
-            print('GG, best MSE loss is %.3f.' % best_val_loss)
+            print('GG, best MSE loss is %.5f.' % best_val_loss)
 
 
 def main(args, config):
