@@ -9,7 +9,7 @@ import torch.nn as nn
 sys.path.append('./')
 from data.tickdata import CSVDataset
 from strategies.vwap.m3t.macro.datamgr import VolumeProfileDataset
-from strategies.vwap.m3t.macro.model import LSTM, MLP, Linear
+from strategies.vwap.m3t.model import LSTM, MLP, Linear
 
 
 def parse_args():
@@ -18,14 +18,14 @@ def parse_args():
     parser.add_argument('--stock', type=str, help='stock code')
     parser.add_argument('--model', type=str, help='macro model {Linear/MLP/LSTM}')
     parser.add_argument('--epoch', default=200, type=int, help='epoch for training')
-    parser.add_argument('--checkpoint', default=25, type=int, help='save model per checkpoint')
+    parser.add_argument('--checkpoint', default=0, type=int, help='save model per checkpoint')
     parser.add_argument('--start_epoch', default=0, type=int, help='start epoch')
     return parser.parse_args()
 
 
 def train(model, model_dir, train_data, val_data,
           epoch, criterion, optimizer,
-          start_epoch=0, checkpoint=25,
+          start_epoch=0, checkpoint=0,
           cuda=True):
     if cuda and torch.cuda.is_available():
         device = torch.device('cuda')
