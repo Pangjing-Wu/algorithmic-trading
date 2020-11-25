@@ -12,9 +12,8 @@ class Linear(nn.Module):
     
     def forward(self, x):
         x = x if torch.is_tensor(x) else torch.tensor(x)
-        x = self.l1(x)
-        return F.relu(x)
-
+        return self.l1(x)
+         
 
 class MLP(nn.Module):
 
@@ -24,7 +23,7 @@ class MLP(nn.Module):
         layer_size = [input_size] + list(hidden_size) + [output_size]
         for i, j in zip(layer_size[:-1], layer_size[1:]):
             layers.append(nn.Linear(i, j))
-            layers.append(nn.ReLU(True))
+            layers.append(nn.Dropout(p=0.5))
         self.layer = nn.Sequential(*layers)
     
     def forward(self, x):
