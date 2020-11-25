@@ -194,7 +194,7 @@ class RecurrentTranche(BasicTranche):
     def observation_space_n(self)->tuple:
         ''' (intrinsic state, extrinsic state)
         '''
-        n = (2, (self._quote_length, 2 * len(self._data.quote.level)))
+        n = (2, 2 * len(self._data.quote.level))
         return n
 
     def _state(self)->tuple:
