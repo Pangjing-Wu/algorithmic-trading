@@ -38,17 +38,6 @@ def volume_profile(trade, time_range:List[int],
     return pd.DataFrame(profile)
 
 
-def distribute_task(goal:int, profile_ratio:pd.DataFrame):
-    subgoals = [int(goal * r // 100 * 100) for r in profile_ratio]
-    subgoals[np.argmax(subgoals)] += goal - sum(subgoals)
-    tasks = dict(
-        start=profile_ratio['start'],
-        end=profile_ratio['end'],
-        goal=subgoals
-        )
-    return pd.DataFrame(tasks)
-
-
 def _check_pair_in_list(x):
     if len(x) < 2 and len(x) % 2 != 0:
         raise ValueError("argument should contain 2 or multiples of 2 elements.")
