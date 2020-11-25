@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -7,8 +8,6 @@ class Linear(nn.Module):
 
     def __init__(self, input_size:int, output_size:int):
         super().__init__()
-        self.criterion = nn.MSELoss
-        self.optimizer = torch.optim.Adam
         self.l1 = nn.Linear(input_size, output_size)
     
     def forward(self, x):
@@ -21,8 +20,6 @@ class MLP(nn.Module):
 
     def __init__(self, input_size:int, hidden_size:tuple, output_size):
         super().__init__()
-        self.criterion = nn.MSELoss
-        self.optimizer = torch.optim.Adam
         layers = list()
         layer_size = [input_size] + list(hidden_size) + [output_size]
         for i, j in zip(layer_size[:-1], layer_size[1:]):
@@ -40,8 +37,6 @@ class LSTM(nn.Module):
     def __init__(self, input_size:int, output_size:int, hidden_size=20,
                  num_layers=1, dropout=0):
         super().__init__()
-        self.criterion = nn.MSELoss
-        self.optimizer = torch.optim.Adam
         self.l1   = nn.Linear(hidden_size, output_size)
         self.lstm = nn.LSTM(input_size, hidden_size, num_layers,
                             dropout=dropout, batch_first=True)
@@ -53,3 +48,29 @@ class LSTM(nn.Module):
         x = x[:,-1,:]
         x = F.relu(x)
         return self.l1(x)
+
+
+class HybridLSTM(nn.Module):
+    
+    def __init__(self, input_size:tuple, output_size:int,
+                 hidden_size=20, num_layers=1, dropout=0):
+        super().__init__()
+        self.l1   = nn.Linear(input_size[0]+hidden_size, output_size, bias=True)
+        self.lstm = nn.LSTM(input_size[1], hidden_size, num_layers,
+                            dropout=dropout, batch_first=True)
+        
+    def forward(self, x):
+        x = np.array(x)
+        if x.ndim == 1:
+            x0 = torch.tensor(x[0])
+            x1 = torch.tensor(x[1]).unsqueeze(0)
+        elif x.ndim == 2:
+            x0 = torch.tensor(np.vstack(x[:,0]), dtype=torch.float32)
+            x1 = torch.tensor(np.array([*x[:,1]]), dtype=torch.float32)
+        else:
+            raise KeyError('unexcepted dimension of x.')
+        x1, _ = self.lstm(x1)
+        x = [x0, x1[:,-1,:]]
+        x = torch.cat(x, dim=1)
+        x = self.l1(x)
+        return x
