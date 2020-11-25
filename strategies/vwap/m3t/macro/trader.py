@@ -1,27 +1,31 @@
-import abc
-import os
-
+import numpy as np
+import pandas as pd
 import torch
 import torch.nn as nn
 
-
-class BaselineMacroTrader(object):
-
-    def __init__(self):
-        pass
- 
-    def __call__(self, x):
-        x = x if torch.is_tensor(x) else torch.tensor(x) 
-        return x.mean().item()
+from .profile import get_tranche_time
+from ..model import BaselineMacro
 
 
-class DeepMacroTrader(object):
+class MacroTrader(object):
 
-    def __init__(self, model, model_file):
-        self.__model = model.to('cpu')
-        self.__model.load_state_dict(torch.load(model_file, map_location='cpu'))
+    def __init__(self, model, model_file, time_range, interval):
+        self.__times = get_tranche_time(time_range, interval)
+        self.__model = model
+        if model_file is not None:
+            self.__model.load_state_dict(torch.load(model_file))
 
-    def __call__(self, x):
-        x = x.to('cpu')
+    def __call__(self, x, goal):
         self.__model.eval()
-        return self.__model(x)
+        x = self.__model(x)
+        tasks = list()
+        for i, in range(x.shape[0]):
+            subgoals = [int(goal * r // 100 * 100) for r in x[i,:]]
+            subgoals[np.argmax(subgoals)] += goal - sum(subgoals)
+            task = dict(
+                start=[t[0] for t in self.__times],
+                end=[t[1] for t in self.__times],
+                goal=subgoals
+                )
+            tasks.append(pd.DataFrame(task))
+        return tasks
