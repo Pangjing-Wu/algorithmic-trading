@@ -4,6 +4,16 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
+class BaselineMacro(nn.Module):
+
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, x):
+        x = x if torch.is_tensor(x) else torch.tensor(x) 
+        return x.mean(axis=1).reshape(-1,1)
+
+
 class Linear(nn.Module):
 
     def __init__(self, input_size:int, output_size:int):
