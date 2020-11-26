@@ -6,12 +6,17 @@
 
     "model_dir": "./results/checkpoints/vwap",
 
+    "exchange": {
+        "wait_trade": 3
+    },
+
     "m3t": {
+        "side": "sell",
         "interval": 1800000,
         "split": [0.6, 0.2, 0.2],
         "macro": {
             "n_history": 20,
-            "model":{
+            "model": {
                 "loss": "MSELoss",
                 "optimier": "Adam",
                 "lr": 0.1,
@@ -25,7 +30,27 @@
             }
         },
         "micro": {
-
+            "goal_pool": [5000, 7500, 10000, 12500, 15000],
+            "model": {
+                "loss": "MSELoss",
+                "optimier": "Adam",
+                "lr": 0.1,
+                "Linear": {},
+                "HybridLSTM": {
+                    "hidden_size": 128,
+                    "num_layers": 1,
+                    "dropout": 0
+                }
+            },
+            "agent":{
+                "QLearning":{
+                    "epsilon": 0.1,
+                    "gamma": 0.99,
+                    "delta_eps": 0.95,
+                    "batch":128,
+                    "memory":10000
+                }
+            }
         }
     }
 }
