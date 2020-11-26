@@ -1,19 +1,28 @@
+import abc
+import copy
+import os
+import random
+
 import numpy as np
 import torch
-import torch.nn as nn
+
+from .utils import ReplayMemory
 
 
 INF = 0x7FFFFFF
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 
 class Baseline(object):
     
-    def __init__(self, side: str, threshold: int=0.1):
-        self._side = 0 if side == 'buy' else 1
-        self._threshold = threshold
-        self._level = [0, 1] if side == 'buy' else [1, 0]   # level[0] is benifit, level[1] is cost.
+    def __init__(self, side:str, level=1, lb=1.01, ub=1.1):
+        if not lb < ub:
+            raise ValueError('lb must be less than ub.')
+        self.__lb = lb
+        self.__ub = ub
+        # action[0] is benifit, action[1] is cost.
+        self.__action = [level, level+1] if side == 'buy' else [level+1, level]
 
-    def __call__(self, state):
+    def __call__(self, time_ratio, filled_ratio):
         '''
         arugment:
         ---------
@@ -23,67 +32,147 @@ class Baseline(object):
         -------
         action: int.
         '''
-        if state[4] >= state[3]:
-            return 2
-        if self._schedule_ratio(state) < 1.05:
-            return 0
-        elif self._schedule_ratio(state) > 1.05 + self._threshold:
-            return 2
-        else:
-            return 1
-
-    def _schedule_ratio(self, state):
-        if state[3] == 0:
-            return INF
-        filled_ratio = state[4] / state[3]
-        time_ratio = (state[0] - state[1]) / (state[2] - state[1])
         if filled_ratio == 1:
-            return INF
-        if time_ratio == 0:
+            return 2
+        if filled_ratio / time_ratio < self.__lb:
             return 1
+        elif filled_ratio / time_ratio > self.__ub:
+            return 2
         else:
-            return filled_ratio / time_ratio
+            return 0
 
-    
-class Linear(nn.Module):
-    
-    def __init__(self, input_size, output_size, criterion=None, optimizer=None):
-        super().__init__()
-        self.criterion = nn.MSELoss if criterion is None else criterion
-        self.optimizer = torch.optim.Adam if optimizer is None else optimizer
-        self.l1 = nn.Linear(input_size, output_size, bias=True)
-        nn.init.uniform_(self.l1.weight, 0, 0.001)
-    
-    def forward(self, x):
-        x = x if torch.is_tensor(x) else torch.tensor(x)
-        x = x.to(device)
-        x = self.l1(x)
-        return x
 
+class BasicTD(abc.ABC):
+
+    def __init__(self, epsilon=0.1, gamma=0.99, delta_eps=0.95,
+                 batch=128, memory=10000, cuda=True):
+        self._epsilon   = epsilon
+        self._gamma     = gamma
+        self._delta_eps = delta_eps
+        self._batch     = min(batch, memory)
+        self._memory    = ReplayMemory(max(1, memory))
+        self._device    = self.__set_device(cuda)
+
+    @abc.abstractmethod
+    def train(self):
+        pass
+
+    @abc.abstractmethod
+    def _validation(self):
+        pass
     
-class LSTM(nn.Module):
+    @abc.abstractmethod
+    def _load_weight(self):
+        pass
     
-    def __init__(self, input_size:tuple, output_size:int, hidden_size=20,
-                 num_layers=1, dropout=0, criterion=None, optimizer=None):
-        super().__init__()
-        self.criterion = nn.MSELoss if criterion is None else criterion
-        self.optimizer = torch.optim.Adam if optimizer is None else optimizer
-        self.l1   = nn.Linear(input_size[0]+hidden_size, output_size, bias=True)
-        self.lstm = nn.LSTM(input_size[1], hidden_size, num_layers, dropout=dropout, batch_first=True)
-        nn.init.uniform_(self.l1.weight, 0, 0.001)
-        
-    def forward(self, x):
-        x = np.array(x)
-        if x.ndim == 1:
-            x0 = torch.tensor(x[0], device=device)
-            x1 = torch.tensor(x[1], device=device).unsqueeze(0)
-        elif x.ndim == 2:
-            x0 = torch.tensor(np.vstack(x[:,0]), device=device, dtype=torch.float32)
-            x1 = torch.tensor(np.array([*x[:,1]]), device=device, dtype=torch.float32)
+    @abc.abstractmethod
+    def _save_weight(self):
+        pass
+
+    def __set_device(self, cuda):
+        if cuda and torch.cuda.is_available():
+            device = torch.device('cuda')
         else:
-            raise KeyError('unexcepted dimension of x.')
-        x1, _ = self.lstm(x1)
-        x = [x0, x1[:,-1,:]]
-        x = torch.cat(x, dim=1)
-        x = self.l1(x)
-        return x
+            device = torch.device('cpu')
+        return device
+
+
+class QLearning(BasicTD):
+
+    def __init__(self, epsilon=0.1, gamma=0.99, delta_eps=0.95,
+                 batch=128, memory=10000, cuda=True):
+        super().__init__(epsilon=epsilon, gamma=gamma,
+                         delta_eps=delta_eps, batch=batch,
+                         memory=memory, cuda=cuda)
+
+    def train(self, train_envs:list, val_envs:list,
+              model, model_dir:str, criterion,
+              optimizer, episode:int, checkpoint=25,
+              start_episode=0):
+        self.__policy_net = model.to(self._device)
+        self.__target_net = copy.deepcopy(model).to(self._device)
+        self.__target_net.eval()
+        self._load(model_dir, start_episode)
+        best_reward = None
+        epsilon = self._epsilon
+        for e in range(start_episode + 1, start_episode + episode + 1):
+            rewards = list()
+            for env in train_envs:
+                s = env.reset()
+                final = False
+                reward = 0
+                while not final:
+                    # select action by epsilon greedy
+                    with torch.no_grad():
+                        if random.random() < epsilon:
+                            a = random.sample(env.action_space, 1)[0]
+                        else:
+                            a = torch.argmax(self.__policy_net(s)).item()
+                    s1, r, final = env.step(a)
+                    reward += r
+                    self.__memory.push(s, a, s1, r)
+                    if len(self._memory) >= self._batch:
+                        batch = self._memory.sample(self._batch)
+                        action_batch  = torch.tensor(batch.action, device=self._device).view(-1,1)
+                        reward_batch  = torch.tensor(batch.reward, device=self._device).view(-1,1)
+                        non_final_mask = torch.tensor([s is not None for s in batch.next_state], 
+                                                      device=self._device, dtype=torch.bool)          
+                        non_final_next_s = [s for s in batch.next_state if s is not None]
+                        Q  = self.__policy_net(batch.state).gather(1, action_batch)
+                        Q1 = torch.zeros(self.__batch, device=self._device)
+                        Q1[non_final_mask] = self.__target_net(non_final_next_s).max(1)[0].detach()
+                        Q_target = self._gamma * Q1.view(-1,1) + reward_batch
+                        loss = criterion(Q, Q_target)
+                        optimizer.zero_grad()
+                        loss.backward()
+                        optimizer.step()
+                    s = s1
+                rewards.append(reward)
+            if e % 5 == 0:
+                self.__target_net.load_state_dict(self._policy_net.state_dict())
+            epsilon     *= self._delta_eps
+            val_reward   = self._validation(val_envs)
+            train_reward = sum(rewards) / len(rewards)
+            print('Episode %d/%d: train reward = %.5f, validation reward = %.5f.' % (
+                  e+1, start_episode + episode, train_reward, val_reward))
+            if checkpoint and e % checkpoint == 0:
+                self._save_weight(model_dir, e)
+            if best_reward == None or best_reward < val_reward:
+                best_reward = val_reward
+                self._save_weight(model_dir, -1)
+                print('Get best model with reward %.5f! saved.\n' % best_reward)
+            else:
+                print('GG! current reward is %.5f, best reward is %.5f.\n' % (
+                      val_reward, best_reward))
+
+    def _validation(self, envs):
+        rewards = list()
+        for env in envs:
+            s = env.reset()
+            final = False
+            reward = 0
+            while not final:
+                with torch.no_grad():
+                    Q = self.__policy_net(s)
+                    a = torch.argmax(Q).item()
+                s1, r, final = env.step(a)
+                reward += r
+                s = s1
+            rewards.append(reward)
+        rewards = sum(rewards) / len(rewards)
+        return rewards
+
+    def _load_weight(self, model_dir, episodes=-1):
+        episodes = 'best' if episodes == -1 else episodes
+        load_dir = os.path.join(model_dir, "%s.pt" % episodes)
+        weight = torch.load(load_dir, map_location=self._device)
+        self.__policy_net.load_state_dict(weight)
+        self.__target_net.load_state_dict(weight)
+
+    def _save_weight(self, model_dir, episodes=-1):
+        os.makedirs(model_dir, exist_ok=True)
+        episodes = 'best' if episodes == -1 else episodes
+        save_dir = os.path.join(model_dir, "%s.pt" % episodes)
+        self.__policy_net.to('cpu')
+        torch.save(self.__policy_net.state_dict(), save_dir)
+        self.__policy_net.to(self.__policy_net)
