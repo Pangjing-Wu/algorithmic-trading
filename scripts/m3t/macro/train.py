@@ -26,11 +26,8 @@ def parse_args():
 def train(model, model_dir, train_data, val_data,
           epoch, criterion, optimizer,
           start_epoch=0, checkpoint=0,
-          cuda=True):
-    if cuda and torch.cuda.is_available():
-        device = torch.device('cuda')
-    else:
-        device = torch.device('cpu')
+          device='cpu'):
+
     model.to(device)
 
     def load_weight(epoch):
@@ -75,6 +72,12 @@ def train(model, model_dir, train_data, val_data,
 
 
 def main(args, config):
+    
+    if args.cuda and torch.cuda.is_available():
+        device = torch.device('cuda')
+    else:
+        device = torch.device('cpu')
+    
     dataset = CSVDataset(config['data']['path'], args.stock)
     data = VolumeProfileDataset(
         dataset = dataset,
@@ -88,13 +91,15 @@ def main(args, config):
     if args.model == 'Linear':
         model = Linear(
             input_size=data.X_len, 
-            output_size=1
+            output_size=1,
+            device=device
             )
     elif args.model == 'MLP':
         model = MLP(
             input_size=data.X_len,
             hidden_size=model_config[args.model]['hidden_size'],
-            output_size=1
+            output_size=1,
+            device=device
             )
     elif args.model == 'LSTM':
         model = LSTM(
@@ -102,7 +107,8 @@ def main(args, config):
             output_size=1,
             hidden_size=model_config[args.model]['hidden_size'],
             num_layers=model_config[args.model]['num_layers'],
-            dropout=model_config[args.model]['dropout']
+            dropout=model_config[args.model]['dropout'],
+            device=device
             )
     else:
         raise ValueError('unknown model.')
@@ -120,7 +126,7 @@ def main(args, config):
         criterion=criterion,
         start_epoch=args.start_epoch,
         checkpoint=args.checkpoint,
-        cuda=args.cuda
+        device=device
         )
 
 

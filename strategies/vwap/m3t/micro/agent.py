@@ -44,14 +44,14 @@ class Baseline(object):
 
 class BasicTD(abc.ABC):
 
-    def __init__(self, epsilon=0.1, gamma=0.99, delta_eps=0.95,
-                 batch=128, memory=10000, cuda=True):
+    def __init__(self, epsilon, gamma, delta_eps, 
+                 batch, memory, device):
         self._epsilon   = epsilon
         self._gamma     = gamma
         self._delta_eps = delta_eps
         self._batch     = min(batch, memory)
         self._memory    = ReplayMemory(max(1, memory))
-        self._device    = self.__set_device(cuda)
+        self._device    = device
 
     @abc.abstractmethod
     def train(self):
@@ -69,21 +69,14 @@ class BasicTD(abc.ABC):
     def _save_weight(self):
         pass
 
-    def __set_device(self, cuda):
-        if cuda and torch.cuda.is_available():
-            device = torch.device('cuda')
-        else:
-            device = torch.device('cpu')
-        return device
-
 
 class QLearning(BasicTD):
 
     def __init__(self, epsilon=0.1, gamma=0.99, delta_eps=0.95,
-                 batch=128, memory=10000, cuda=True):
+                 batch=128, memory=10000, device='cpu'):
         super().__init__(epsilon=epsilon, gamma=gamma,
                          delta_eps=delta_eps, batch=batch,
-                         memory=memory, cuda=cuda)
+                         memory=memory, device=device)
 
     def train(self, train_envs:list, val_envs:list,
               model, model_dir:str, criterion,
@@ -92,7 +85,9 @@ class QLearning(BasicTD):
         self.__policy_net = model.to(self._device)
         self.__target_net = copy.deepcopy(model).to(self._device)
         self.__target_net.eval()
-        self._load(model_dir, start_episode)
+        start_episode = 'best' if start_episode == -1 else start_episode
+        if start_episode != 0:
+            self._load_weight(model_dir, start_episode)
         best_reward = None
         epsilon = self._epsilon
         for e in range(start_episode + 1, start_episode + episode + 1):
@@ -110,16 +105,16 @@ class QLearning(BasicTD):
                             a = torch.argmax(self.__policy_net(s)).item()
                     s1, r, final = env.step(a)
                     reward += r
-                    self.__memory.push(s, a, s1, r)
+                    self._memory.push(s, a, s1, r)
                     if len(self._memory) >= self._batch:
                         batch = self._memory.sample(self._batch)
                         action_batch  = torch.tensor(batch.action, device=self._device).view(-1,1)
                         reward_batch  = torch.tensor(batch.reward, device=self._device).view(-1,1)
                         non_final_mask = torch.tensor([s is not None for s in batch.next_state], 
-                                                      device=self._device, dtype=torch.bool)          
+                                                      device=self._device, dtype=torch.bool)     
                         non_final_next_s = [s for s in batch.next_state if s is not None]
                         Q  = self.__policy_net(batch.state).gather(1, action_batch)
-                        Q1 = torch.zeros(self.__batch, device=self._device)
+                        Q1 = torch.zeros(self._batch, device=self._device)
                         Q1[non_final_mask] = self.__target_net(non_final_next_s).max(1)[0].detach()
                         Q_target = self._gamma * Q1.view(-1,1) + reward_batch
                         loss = criterion(Q, Q_target)
@@ -175,4 +170,4 @@ class QLearning(BasicTD):
         save_dir = os.path.join(model_dir, "%s.pt" % episodes)
         self.__policy_net.to('cpu')
         torch.save(self.__policy_net.state_dict(), save_dir)
-        self.__policy_net.to(self.__policy_net)
+        self.__policy_net.to(self._device)
