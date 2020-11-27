@@ -13,6 +13,7 @@ class TrancheDataset(object):
     Arguments:
     ----------
         dataset: tickdata dataset, e.g.: {CSVDataset/H2Dataset}.
+        i_tranche: int, tranche id, start from 1.
     '''
 
     def __init__(self, dataset, split:List[float], i_tranche:int,
@@ -20,11 +21,11 @@ class TrancheDataset(object):
         self.__check_split(split)
         self.__times   = get_tranche_time(time_range, interval)
         self.__n       = len(self.__times)
-        self.__time    = self.__times[i_tranche]
         self.__split   = split
         self.__dates   = dataset.dates[drop_length:]
         self.__dataset = dataset[drop_length:]
         self.__build_dataset()
+        self.set_tranche(i_tranche)
 
     @property
     def n(self):
@@ -50,8 +51,14 @@ class TrancheDataset(object):
     def test_date(self)->list:
         return self.__test_date
 
-    def set_tranche(self, i):
-        self.__time = self.__times[i]
+    def set_tranche(self, i:int):
+        '''
+        Arguments:
+        ----------
+        i_tranche: int, tranche id, start from 1.
+        '''
+        self.__check_tranche(i)
+        self.__time = self.__times[i-1]
 
     def __build_dataset(self):
         n = len(self.__dataset)
@@ -66,3 +73,7 @@ class TrancheDataset(object):
             raise ValueError('the length of split must be 3.')
         if sum(split) != 1:
             raise ValueError('the sum of split must be 1.')
+
+    def __check_tranche(self, i):
+        if i < 1 or i > len(self.__times):
+            raise ValueError('tranche id not in range.')
