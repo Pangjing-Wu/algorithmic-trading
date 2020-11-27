@@ -37,7 +37,7 @@ def main(args, config):
     dataset = CSVDataset(config['data']['path'], args.stock)
     data = VolumeProfileDataset(
         dataset = dataset,
-        split=config['m3t']['split'], 
+        split=config['m3t']['macro']['split'], 
         time_range=config['data']['times'],
         interval=config['m3t']['interval'],
         history_length=config['m3t']['macro']['n_history']
