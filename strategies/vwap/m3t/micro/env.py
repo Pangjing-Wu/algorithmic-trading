@@ -15,6 +15,11 @@ class BasicTranche(abc.ABC):
 
     def __init__(self, tickdata, task:pd.Series,
                  exchange:callable, level:int, side:str):
+        '''
+        Arguments:
+        ---------
+            task: pd.Series, keys are 'start', 'end, 'goal'.
+        '''
         self._data = tickdata.between(task['start'], task['end'])
         self._task = task
         self._side = side
@@ -87,6 +92,7 @@ class BasicTranche(abc.ABC):
     def reset(self):
         self._init = True
         self._final = False
+        self._exchange.reset()
         self._iter = iter(self._time)
         self._t = next(self._iter)
         self._filled = {'time': [], 'price':[], 'size':[]}
