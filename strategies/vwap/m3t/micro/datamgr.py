@@ -24,7 +24,6 @@ class TrancheDataset(object):
         self.__split   = split
         self.__dates   = dataset.dates[drop_length:]
         self.__dataset = dataset[drop_length:]
-        self.__build_dataset()
         self.set_tranche(i_tranche)
 
     @property
@@ -59,6 +58,8 @@ class TrancheDataset(object):
         '''
         self.__check_tranche(i)
         self.__time = self.__times[i-1]
+        self.__build_dataset()
+        return self
 
     def __build_dataset(self):
         n = len(self.__dataset)
