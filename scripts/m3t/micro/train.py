@@ -87,7 +87,7 @@ def main(args, config):
             output_size=envs[0].action_space_n,
             device=device
             )
-    elif args.model == 'Lstm':
+    elif args.model == 'HybridLSTM':
         model = HybridLSTM(
             input_size=envs[0].observation_space_n,
             output_size=envs[0].action_space_n,
