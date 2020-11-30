@@ -78,9 +78,9 @@ class HybridLSTM(nn.Module):
         self.__device = device
         
     def forward(self, x):
-        x = np.array(x)
+        x = np.array(x, dtype=object)
         if x.ndim == 1:
-            x0 = torch.tensor(x[0], device=self.__device)
+            x0 = torch.tensor(x[0], device=self.__device).unsqueeze(0)
             x1 = torch.tensor(x[1], device=self.__device).unsqueeze(0)
         elif x.ndim == 2:
             x0 = torch.tensor(np.vstack(x[:,0]), device=self.__device, dtype=torch.float32)
