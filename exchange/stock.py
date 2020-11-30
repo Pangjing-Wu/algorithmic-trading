@@ -26,6 +26,7 @@ class AShareExchange(object):
             return self.__order.__str__()
 
     def reset(self):
+        self.__order = None
         self.__last_time = -1
         return self
 
