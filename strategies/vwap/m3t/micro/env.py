@@ -5,7 +5,6 @@ import numpy as np
 import pandas as pd
 
 from exchange.order import ClientOrder
-from utils.errors import *
 
 
 dotmut = lambda x, y: sum([a * b for a, b in zip(x, y)])
@@ -14,7 +13,8 @@ dotmut = lambda x, y: sum([a * b for a, b in zip(x, y)])
 class BasicTranche(abc.ABC):
 
     def __init__(self, tickdata, task:pd.Series,
-                 exchange:callable, level:int, side:str):
+                 exchange:callable, level:int,
+                 side:str, reward:str):
         '''
         Arguments:
         ---------
@@ -26,6 +26,7 @@ class BasicTranche(abc.ABC):
         self._init = False
         self._final = False
         self._time = self._data.quote.timeseries
+        self._reward_type = reward
         self._exchange = exchange.reset()
         self._level_space = self.__int2level(level)
 
@@ -54,19 +55,19 @@ class BasicTranche(abc.ABC):
 
     @property
     def filled(self):
-        return self._filled
+        return self._total_filled
 
     @property
     def vwap(self):
-        price = self._filled['price']
-        size  = self._filled['size']
+        price = self._total_filled['price']
+        size  = self._total_filled['size']
         vwap  = dotmut(price, size)
         vwap  = vwap / sum(size) if sum(size) != 0 else 0
         return vwap
 
     @property
     def market_vwap(self):
-        trade = self._data.trade. between(self._time[0], self._t)
+        trade = self._data.trade.between(self._time[0], self._t)
         price = trade['price']
         size  = trade['size']
         vwap  = dotmut(price, size)
@@ -76,10 +77,11 @@ class BasicTranche(abc.ABC):
     @property
     def task(self):
         task = self._task.to_dict()
-        task['filled'] = sum(self._filled['size'])
+        task['filled'] = sum(self._total_filled['size'])
         return task
 
-    def is_final(self):
+    @property
+    def final(self):
         return self._final
 
     def metrics(self):
@@ -90,19 +92,20 @@ class BasicTranche(abc.ABC):
         return ret
 
     def reset(self):
-        self._init = True
-        self._final = False
+        self._init  = True
+        self._final  = False
+        self._filled = None
         self._exchange.reset()
         self._iter = iter(self._time)
         self._t = next(self._iter)
-        self._filled = {'time': [], 'price':[], 'size':[]}
+        self._total_filled = {'time': [], 'price':[], 'size':[]}
         return self._state()
 
     def step(self, action)->tuple:
         if self._init == False:
-            raise NotInitiateError
+            raise RuntimeError("environment has not initiated, run reset first.")
         if self._final == True:
-            raise EnvTerminatedError
+            raise RuntimeError("environment is terminated, run reset first.")
         if action < len(self._level_space):
             self._exchange.issue(2)
             self._exchange.issue(1, self.__action2order(action))
@@ -112,25 +115,42 @@ class BasicTranche(abc.ABC):
             raise ValueError('unknown action.')
         order = self._exchange.step(self._t)
         if order != None:
-            filled = order.filled[order.filled['time'] == self._t]
-            self._filled['time']  += filled['time'].values.tolist()
-            self._filled['size']  += filled['size'].values.tolist()
-            self._filled['price'] += filled['price'].values.tolist()
-        self._t = next(self._iter)
-        if self._t == self._time[-1] or sum(self._filled['size']) == self._task['goal']:
-            self._final = True
-        if self._final == True and sum(self._filled['size']) < self._task['goal']:
-            market_order_level = 'bid1' if self._side == 'buy' else 'ask1'
-            self._filled['time'].append((self._t))
-            self._filled['size'].append(self._task['goal'] - sum(self._filled['size']))
-            self._filled['price'].append(self._data.quote.get(self._t)[market_order_level].iloc[0])
-        if self._final:
-            reward = self.market_vwap - self.vwap
-            reward = reward if self._side == 'buy' else -reward
+            self._filled = order.filled[order.filled['time'] == self._t]
+            self._total_filled['time']  += self._filled['time'].values.tolist()
+            self._total_filled['size']  += self._filled['size'].values.tolist()
+            self._total_filled['price'] += self._filled['price'].values.tolist()
         else:
-            reward = 0.
-        state = None if self._final else self._state()
+            self._filled = None
+        self._t = next(self._iter)
+        if self._t == self._time[-1] or sum(self._total_filled['size']) == self._task['goal']:
+            self._final = True
+        if self._final == True and sum(self._total_filled['size']) < self._task['goal']:
+            market_order_level = 'bid1' if self._side == 'buy' else 'ask1'
+            self._total_filled['time'].append((self._t))
+            self._total_filled['size'].append(self._task['goal'] - sum(self._total_filled['size']))
+            self._total_filled['price'].append(self._data.quote.get(self._t)[market_order_level].iloc[0])
+        state  = None if self._final else self._state()
+        reward = self._reward()
         return (state, reward, self._final)
+
+    def _reward(self):
+        if self._reward_type == 'sparse':
+            if self._final:
+                reward = 100 * (self.market_vwap - self.vwap)
+                reward = reward if self._side == 'buy' else -reward
+            else:
+                reward = 0.
+        elif self._reward_type == 'dense':
+            if self._filled is not None and self._filled.shape[0] > 0:
+                vwap = dotmut(self._filled['price'].values, self._filled['size'].values)
+                vwap = vwap / sum(self._filled['size']) if sum(self._filled['size']) != 0 else 0
+                reward = 100 * (self.market_vwap - vwap)
+                reward = reward if self._side == 'buy' else -reward
+            else:
+                reward = 0
+        else:
+            raise ValueError('unkonwn reward type.')
+        return reward
 
     def __action2order(self, action:int):
         time  = self._t
@@ -155,9 +175,10 @@ class HistoricalTranche(BasicTranche):
     
     def __init__(self, tickdata, task:pd.Series,
                  exchange:callable, level:int, side:str,
-                 quote_length=1):
+                 quote_length=1, reward='sparse'):
         super().__init__(tickdata=tickdata, task=task,
-                         exchange=exchange, level=level, side=side)
+                         exchange=exchange, level=level,
+                         side=side, reward=reward)
         self._quote_length = quote_length
 
     @property
@@ -181,7 +202,7 @@ class HistoricalTranche(BasicTranche):
         padnum  = 2 * len(self._data.quote.level) * self._quote_length - len(history)
         history = np.pad(history, (padnum, 0))
         time_ratio  = (self._t - self._task['start']) / (self._task['end'] - self._task['start'])
-        filled_ratio = sum(self._filled['size']) / self._task['goal']
+        filled_ratio = sum(self._total_filled['size']) / self._task['goal']
         state = [time_ratio, filled_ratio, *history]
         return np.array(state, dtype=np.float32)
 
@@ -191,11 +212,12 @@ class RecurrentTranche(BasicTranche):
     
     def __init__(self, tickdata, task:pd.Series,
                  exchange:callable, level:int, side:str,
-                 quote_length:int):
+                 quote_length:int, reward='sparse'):
         super().__init__(tickdata=tickdata, task=task,
-                         exchange=exchange, level=level, side=side)
+                         exchange=exchange, level=level,
+                         side=side, reward=reward)
         self._quote_length = quote_length
-
+        
     @property
     def observation_space_n(self)->tuple:
         ''' (intrinsic state, extrinsic state)
@@ -218,5 +240,5 @@ class RecurrentTranche(BasicTranche):
         history = np.pad(history, (padnum, 0))
         history = history.reshape(self._quote_length, 2 * len(self._data.quote.level))
         time_ratio  = (self._t - self._task['start']) / (self._task['end'] - self._task['start'])
-        filled_ratio = sum(self._filled['size']) / self._task['goal']
+        filled_ratio = sum(self._total_filled['size']) / self._task['goal']
         return (np.array([time_ratio, filled_ratio], dtype=np.float32), np.array(history, dtype=np.float32))
