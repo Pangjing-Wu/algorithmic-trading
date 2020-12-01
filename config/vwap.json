@@ -31,7 +31,7 @@
         },
         "micro": {
             "split": [0.8, 0.2],
-            "goal_pool": [5000, 7500, 10000, 12500, 15000],
+            "goal_pool": [9000, 12000, 15000, 18000, 21000],
             "level": 1,
             "model": {
                 "loss": "MSELoss",
@@ -46,7 +46,6 @@
             },
             "agent":{
                 "QLearning":{
-                    "epsilon": 0.1,
                     "gamma": 0.99,
                     "delta_eps": 0.95,
                     "batch":128,
