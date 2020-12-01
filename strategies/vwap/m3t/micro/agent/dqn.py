@@ -10,15 +10,17 @@ from .base import BasicQ
 
 class QLearning(BasicQ):
 
-    def __init__(self, epsilon=0.1, gamma=0.99, delta_eps=0.95,
-                 batch=128, memory=10000, device='cpu'):
-        super().__init__(epsilon=epsilon, gamma=gamma,
+    def __init__(self, criterion, optimizer, epsilon=0.5,
+                 gamma=0.99, delta_eps=0.95, batch=128,
+                 memory=10000, device='cpu'):
+        super().__init__(criterion=criterion,
+                         optimizer=optimizer,
+                         epsilon=epsilon, gamma=gamma,
                          delta_eps=delta_eps, batch=batch,
                          memory=memory, device=device)
 
     def train(self, envs:list, model, model_dir:str,
-              criterion, optimizer, episode:int, 
-              checkpoint=0, start_episode=0):
+              episode:int, checkpoint=0, start_episode=0):
         self.__policy_net = model.to(self._device)
         self.__target_net = copy.deepcopy(model).to(self._device)
         self.__target_net.eval()
@@ -53,10 +55,10 @@ class QLearning(BasicQ):
                     Q1 = torch.zeros(self._batch, device=self._device)
                     Q1[non_final_mask] = self.__target_net(non_final_next_s).max(1)[0].detach()
                     Q_target = self._gamma * Q1.view(-1,1) + reward_batch
-                    loss = criterion(Q, Q_target)
-                    optimizer.zero_grad()
+                    loss = self._criterion(Q, Q_target)
+                    self._optimizer.zero_grad()
                     loss.backward()
-                    optimizer.step()
+                    self._optimizer.step()
                 s = s1
             print('Episode %d/%d: train reward = %.5f' % (e, episode, reward))
             if e % 5 == 0:
