@@ -131,20 +131,23 @@ class BasicTranche(abc.ABC):
             self._total_filled['price'].append(self._data.quote.get(self._t)[market_order_level].iloc[0])
         state  = None if self._final else self._state()
         reward = self._reward()
-        return (state, reward, self._final)
+        return (state, reward)
 
     def _reward(self):
         if self._reward_type == 'sparse':
             if self._final:
-                reward = 100 * (self.market_vwap - self.vwap)
+                reward = 10000 * (self.market_vwap - self.vwap)
                 reward = reward if self._side == 'buy' else -reward
             else:
                 reward = 0.
         elif self._reward_type == 'dense':
-            if self._filled is not None and self._filled.shape[0] > 0:
+            pre_t = self._time[max(self._time.index(self._t)-1, 0)]
+            trade = self._data.trade.between(pre_t, self._t)
+            if not trade.empty and self._filled is not None and self._filled.shape[0] > 0:
                 vwap = dotmut(self._filled['price'].values, self._filled['size'].values)
                 vwap = vwap / sum(self._filled['size']) if sum(self._filled['size']) != 0 else 0
-                reward = 100 * (self.market_vwap - vwap)
+                market_vwap = dotmut(trade['price'], trade['size']) / sum(trade['size'])
+                reward = 100 * (market_vwap - vwap)
                 reward = reward if self._side == 'buy' else -reward
             else:
                 reward = 0
