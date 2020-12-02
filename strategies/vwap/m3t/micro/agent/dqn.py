@@ -32,16 +32,15 @@ class QLearning(BasicQ):
             e += 1
             env = random.sample(envs, k=1)[0]
             s = env.reset()
-            final = False
             reward = 0
-            while not final:
+            while not env.final:
             # select action by epsilon greedy
                 with torch.no_grad():
                     if random.random() < epsilon:
                         a = random.sample(env.action_space, 1)[0]
                     else:
                         a = torch.argmax(self.__policy_net(s)).item()
-                s1, r, final = env.step(a)
+                s1, r = env.step(a)
                 reward += r
                 self._memory.push(s, a, s1, r)
                 if len(self._memory) >= self._batch:
@@ -60,7 +59,7 @@ class QLearning(BasicQ):
                     loss.backward()
                     self._optimizer.step()
                 s = s1
-            print('Episode %d/%d: train reward = %.5f' % (e, episode, reward))
+            print('Episode %d/%d: train reward = %.5f, metrics = %s' % (e, episode, reward, env.metrics()))
             if e % 5 == 0:
                 epsilon *= self._delta_eps
                 self.__target_net.load_state_dict(self.__policy_net.state_dict())
