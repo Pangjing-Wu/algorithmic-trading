@@ -123,8 +123,8 @@ class BasicTranche(abc.ABC):
         self._filled   = None
         self._subgoal  = None
         self._subfinal = True
-        self._iter = iter(self._time)
-        self._t = next(self._iter)
+        self._iter     = iter(self._time)
+        self._t        = next(self._iter)
         self._force_transaction = False
         self._total_filled = dict(time=[], price=[], size=[])
         self._exchange.reset()
@@ -317,7 +317,10 @@ class HistoricalTranche(BasicTranche):
     def extrinsic_state(self)->np.array:
         time_ratio = (self._t - self._time[0]) / (self._time[-1] - self._time[0])
         filled_ratio = sum(self._total_filled['size']) / self._goal
-        trade_volume = np.log10(self._data.trade.between(t2=self._t)['size'].sum())
+        if self._t == self._time[0]:
+            trade_volume = 8
+        else:
+            trade_volume = np.log10(self._data.trade.between(self._substart, self._t)['size'].sum() + 1e-10)
         state = [time_ratio, filled_ratio, trade_volume]
         return np.array(state, dtype=np.float32)
 
@@ -363,5 +366,9 @@ class RecurrentTranche(BasicTranche):
     def extrinsic_state(self)->np.array:
         time_ratio = (self._t - self._time[0]) / (self._time[-1] - self._time[0])
         filled_ratio = sum(self._total_filled['size']) / self._goal
-        state = [time_ratio, filled_ratio]
+        if self._t == self._time[0]:
+            trade_volume = 8
+        else:
+            trade_volume = np.log10(self._data.trade.between(self._substart, self._t)['size'].sum() + 1e-10)
+        state = [time_ratio, filled_ratio, trade_volume]
         return np.array(state, dtype=np.float32)
