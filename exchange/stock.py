@@ -98,10 +98,10 @@ class AShareExchange(object):
             if (self.__order.side == 'buy' and order_level[:3] == 'bid') or (
                 self.__order.side == 'sell' and order_level[:3] == 'ask'):
                 size = trade[trade['price']==price]['size'].sum()
-            if size <= 0:
+            # NOTE the minimum transaction unit is 1 lot.
+            if size <= 100:
                 level = self.__next_level(level)
             elif size < self.__order.remain:
-                # NOTE the minimum transaction unit is 1 lot.
                 size = size // 100 * 100
                 self.__order.update_filled(self.__t, price, size)
                 level = self.__next_level(level)
