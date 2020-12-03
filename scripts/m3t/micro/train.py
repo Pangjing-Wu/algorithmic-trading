@@ -107,7 +107,7 @@ def main(args, config):
 
     if args.agent == 'QLearning':
         agent = QLearning(
-            epsilon=args.eps
+            epsilon=args.eps,
             criterion=criterion,
             optimizer=optimizer,
             device=device,
