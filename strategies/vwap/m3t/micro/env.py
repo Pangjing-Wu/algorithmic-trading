@@ -14,7 +14,7 @@ class BasicTranche(abc.ABC):
 
     def __init__(self, tickdata, task:pd.Series,
                  exchange:callable, level:int,
-                 side:str, reward:str):
+                 side:str, reward:str, unit_size=100):
         '''
         Arguments:
         ---------
@@ -25,6 +25,7 @@ class BasicTranche(abc.ABC):
         self._side = side
         self._init = False
         self._final = False
+        self._unit_size = unit_size
         self._time = self._data.quote.timeseries
         self._reward_type = reward
         self._exchange = exchange.reset()
@@ -145,7 +146,7 @@ class BasicTranche(abc.ABC):
             trade = self._data.trade.between(pre_t, self._t)
             if not trade.empty and self._filled is not None and self._filled.shape[0] > 0:
                 vwap = dotmut(self._filled['price'].values, self._filled['size'].values)
-                vwap = vwap / sum(self._filled['size']) if sum(self._filled['size']) != 0 else 0
+                vwap = vwap / sum(self._filled['size'])
                 market_vwap = dotmut(trade['price'], trade['size']) / sum(trade['size'])
                 reward = 100 * (market_vwap - vwap)
                 reward = reward if self._side == 'buy' else -reward
@@ -160,7 +161,7 @@ class BasicTranche(abc.ABC):
         side  = self._side
         level = self._level_space[action]
         price = self._data.quote.get(time)[level].iloc[0]
-        order = ClientOrder(time=time, side=side, price=price, size=100)
+        order = ClientOrder(time=time, side=side, price=price, size=self._unit_size)
         return order
 
     def __int2level(self, level:int):
