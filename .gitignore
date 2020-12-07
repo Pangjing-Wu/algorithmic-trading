@@ -6,4 +6,4 @@ test
 results
 data/testdata
 data/.cache
-logs
+*.log
