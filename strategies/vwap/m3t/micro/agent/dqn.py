@@ -12,12 +12,13 @@ class QLearning(BasicQ):
 
     def __init__(self, criterion, optimizer, epsilon=0.5,
                  gamma=0.99, delta_eps=0.95, batch=128,
-                 memory=10000, device='cpu'):
+                 memory=10000, device='cpu', warmup_coef=10):
         super().__init__(criterion=criterion,
                          optimizer=optimizer,
                          epsilon=epsilon, gamma=gamma,
                          delta_eps=delta_eps, batch=batch,
                          memory=memory, device=device)
+        self.__warmup_coef = warmup_coef
 
     def train(self, envs:list, model, model_dir:str,
               episode:int, checkpoint=0, start_episode=0):
@@ -43,7 +44,7 @@ class QLearning(BasicQ):
                 s1, r = env.step(a)
                 reward += r
                 self._memory.push(s, a, s1, r)
-                if len(self._memory) >= self._batch:
+                if len(self._memory) >= self._batch * self.__warmup_coef:
                     batch = self._memory.sample(self._batch)
                     action_batch  = torch.tensor(batch.action, device=self._device).view(-1,1)
                     reward_batch  = torch.tensor(batch.reward, device=self._device).view(-1,1)
