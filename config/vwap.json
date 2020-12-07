@@ -7,7 +7,8 @@
     "model_dir": "./results/checkpoints/vwap",
 
     "exchange": {
-        "wait_trade": 3
+        "wait_trade": 3,
+        "unit_size": 100
     },
 
     "m3t": {
@@ -21,7 +22,7 @@
                 "optimier": "Adam",
                 "lr": 0.1,
                 "Linear": {},
-                "MLP": {"hidden_size": [32, 64, 128, 64, 32]},
+                "MLP": {"hidden_size": [32, 64, 32]},
                 "LSTM": {
                     "hidden_size": 128,
                     "num_layers": 1,
@@ -51,6 +52,34 @@
                     "batch":128,
                     "memory":10000
                 }
+            }
+        }
+    },
+
+    "hrl": {
+        "side": "sell",
+        "interval": 1800000,
+        "n_history": 20,
+        "split": [0.8, 0.2],
+        "goal_pool": [9000, 12000, 15000, 18000, 21000],
+        "level": 1,
+        "model": {
+            "loss": "MSELoss",
+            "optimier": "Adam",
+            "lr": 0.1,
+            "MLP": {"hidden_size": [8]},
+            "HybridLSTM": {
+                "hidden_size": 128,
+                "num_layers": 1,
+                "dropout": 0
+            }
+        },
+        "agent":{
+            "HierarchicalQ":{
+                "gamma": 0.99,
+                "delta_eps": 0.95,
+                "batch":128,
+                "memory":10000
             }
         }
     }
