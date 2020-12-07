@@ -9,7 +9,7 @@ import torch.nn as nn
 sys.path.append('./')
 from data.tickdata import CSVDataset
 from strategies.vwap.m3t.macro.datamgr import VolumeProfileDataset
-from strategies.vwap.m3t.model import LSTM, MLP, Linear, BaselineMacro
+from strategies.vwap.m3t.model import LSTM, MLP, Linear, MacroBaseline
 
 
 def parse_args():
@@ -45,7 +45,7 @@ def main(args, config):
 
     model_config = config['m3t']['macro']['model']
     if args.model == 'Baseline':
-        model = BaselineMacro()
+        model = MacroBaseline()
     elif args.model == 'Linear':
         model = Linear(
             input_size=data.X_len, 
@@ -69,7 +69,7 @@ def main(args, config):
         raise ValueError('unknown macro model')
     model_file = os.path.join(config['model_dir'], 'm3t', 'macro',
                                 args.stock, args.model, 'best.pt')
-    model_file = None if isinstance(model, BaselineMacro) else model_file
+    model_file = None if isinstance(model, MacroBaseline) else model_file
         
     criterion = nn.MSELoss()
     test(model=model, model_file=model_file, dataset=data, criterion=criterion)
