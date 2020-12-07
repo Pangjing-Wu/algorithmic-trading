@@ -11,7 +11,6 @@ import torch.nn as nn
 sys.path.append('./')
 from data.tickdata import CSVDataset
 from exchange.stock import AShareExchange
-from strategies.vwap.m3t.macro.profile import get_tranche_time
 from strategies.vwap.m3t.micro.datamgr import TrancheDataset
 from strategies.vwap.m3t.micro.agent import QLearning
 from strategies.vwap.m3t.micro.env import HistoricalTranche, RecurrentTranche
@@ -20,7 +19,6 @@ from strategies.vwap.m3t.model import HybridLSTM, Linear
 
 def parse_args():
     parser = argparse.ArgumentParser('train reinforcement micro tader')
-    parser.add_argument('--env', type=str, help='RL environment {Historical/Recurrent}')
     parser.add_argument('--eps', type=float, help='epsilon greedy rate')
     parser.add_argument('--cuda', action='store_true', help='use cuda in training')
     parser.add_argument('--stock', type=str, help='stock code')
@@ -73,12 +71,12 @@ def main(args, config):
         drop_length=config['m3t']['macro']['n_history']
         )
 
-    if args.env == 'Historical':
+    if args.model == 'Linear':
         env = HistoricalTranche
-    elif args.env == 'Recurrent':
+    elif args.model == 'HybridLSTM':
         env = RecurrentTranche
     else:
-        raise ValueError('unknown environment')
+        raise ValueError('unknown model.')
 
     envs = generate_tranche_envs(tranches.train_set, env,
                                  tranches.time, args, config)
@@ -114,7 +112,7 @@ def main(args, config):
             **config['m3t']['micro']['agent']['QLearning']
             )
     else:
-        raise ValueError('unkonwn agent')
+        raise ValueError('unkonwn agent.')
 
     model_dir = os.path.join(config['model_dir'], 'm3t', 'micro', args.stock,
                                 args.agent, "%s-%d" % (args.model, args.quote_length),
