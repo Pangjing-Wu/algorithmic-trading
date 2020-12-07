@@ -12,18 +12,11 @@ def dotmut(x, y): return sum([a * b for a, b in zip(x, y)])
 
 Subgoal = namedtuple('Subgoal', ['step', 'ratio'])
 
-SUBGOALS = [
-    Subgoal(500, 0.10), Subgoal(500, 0.12), Subgoal(500, 0.14),
-    Subgoal(600, 0.10), Subgoal(600, 0.12), Subgoal(600, 0.14),
-    Subgoal(700, 0.10), Subgoal(700, 0.12), Subgoal(700, 0.14),
-]
-
 
 class BasicTranche(abc.ABC):
 
-    def __init__(self, tickdata, goal:int, subgoals:list,
-                 exchange:callable, level: int, side:str,
-                 reward:str, unit_size:int):
+    def __init__(self, tickdata, goal:int, exchange:callable,
+                 level: int, side:str, reward:str, unit_size:int):
         '''
         Arguments:
         ---------
@@ -35,34 +28,54 @@ class BasicTranche(abc.ABC):
         self._side = side
         self._init = False
         self._final = False
-        self._subgoals = subgoals
         self._unit_size = unit_size
         self._time = self._data.quote.timeseries
         self._reward_type = reward
         self._exchange = exchange.reset()
         self._level_space = self.__int2level(level)
+        self._subgoals = [
+            Subgoal(80, 0.13),  Subgoal(80, 0.16),  Subgoal(80, 0.19),
+            Subgoal(100, 0.13), Subgoal(100, 0.16), Subgoal(100, 0.19),
+            Subgoal(120, 0.13), Subgoal(120, 0.16), Subgoal(120, 0.19),
+            ]
 
     def __len__(self):
         return len(self._time)
 
     @abc.abstractproperty
-    def observation_space_n(self):
+    def intrinsic_observation_space_n(self):
         pass
 
     @abc.abstractmethod
-    def extrinsic_state(self):
+    def _extrinsic_state(self):
         pass
 
     @abc.abstractmethod
     def _intrinsic_state(self):
         pass
+    
+    @property
+    def extrinsic_observation_space_n(self):
+        return 3
 
     @property
-    def action_space(self):
+    def extrinsic_state(self):
+        return self._extrinsic_state()
+
+    @property
+    def extrinsic_action_space(self):
+        return list(range(len(self._subgoals)))
+
+    @property
+    def extrinsic_action_space_n(self):
+        return len(self._subgoals)
+
+    @property
+    def intrinsic_action_space(self):
         return list(range(len(self._level_space) + 1))
 
     @property
-    def action_space_n(self):
+    def intrinsic_action_space_n(self):
         return len(self._level_space) + 1
 
     @property
@@ -72,14 +85,6 @@ class BasicTranche(abc.ABC):
     @property
     def filled(self):
         return self._total_filled
-
-    @property
-    def goal_space(self):
-        return self._subgoals
-
-    @property
-    def goal_space_n(self):
-        return len(self._subgoals)
 
     @property
     def extrinsic_reward(self):
@@ -119,16 +124,16 @@ class BasicTranche(abc.ABC):
 
     def reset(self):
         self._init     = True
-        self._final    = False
-        self._filled   = None
+        self._final     = False
+        self._filled    = None
         self._subgoal  = None
-        self._subfinal = True
+        self._subfinal  = True
         self._iter     = iter(self._time)
         self._t        = next(self._iter)
         self._force_transaction = False
         self._total_filled = dict(time=[], price=[], size=[])
         self._exchange.reset()
-        return self.extrinsic_state()
+        return self._extrinsic_state()
 
     def step(self, action) -> tuple:
         if self._init == False:
@@ -264,8 +269,7 @@ class BasicTranche(abc.ABC):
         side = self._side
         level = self._level_space[action]
         price = self._data.quote.get(time)[level].iloc[0]
-        order = ClientOrder(time=time, side=side,
-                            price=price, size=self._unit_size)
+        order = ClientOrder(time=time, side=side, price=price, size=self._unit_size)
         return order
 
     def __int2level(self, level: int):
@@ -281,16 +285,16 @@ class BasicTranche(abc.ABC):
 # 2.0.0/2.5.0 version env
 class HistoricalTranche(BasicTranche):
 
-    def __init__(self, tickdata, goal:int, subgoals:list,
-                 exchange: callable, level: int, side: str,
-                 quote_length=1, reward='sparse', unit_size=100):
-        super().__init__(tickdata=tickdata, goal=goal, subgoals=subgoals,
-                         exchange=exchange, level=level, side=side,
-                         reward=reward, unit_size=unit_size)
+    def __init__(self, tickdata, goal:int, exchange: callable,
+                 level: int, side: str,  quote_length=1,
+                 reward='sparse', unit_size=100):
+        super().__init__(tickdata=tickdata, goal=goal, exchange=exchange,
+                         level=level, side=side, reward=reward,
+                         unit_size=unit_size)
         self._quote_length = quote_length
 
     @property
-    def observation_space_n(self)->int:
+    def intrinsic_observation_space_n(self)->int:
         ''' intrinsic + extrinsic
         '''
         n = 2 + 2 * len(self._data.quote.level) * self._quote_length
@@ -314,7 +318,7 @@ class HistoricalTranche(BasicTranche):
         state = [time_ratio, filled_ratio, *history]
         return np.array(state, dtype=np.float32)
 
-    def extrinsic_state(self)->np.array:
+    def _extrinsic_state(self)->np.array:
         time_ratio = (self._t - self._time[0]) / (self._time[-1] - self._time[0])
         filled_ratio = sum(self._total_filled['size']) / self._goal
         if self._t == self._time[0]:
@@ -328,16 +332,16 @@ class HistoricalTranche(BasicTranche):
 # version 3.0.0
 class RecurrentTranche(BasicTranche):
 
-    def __init__(self, tickdata, goal:int, subgoals:list,
-                 exchange: callable, level: int, side: str,
-                 quote_length=1, reward='sparse', unit_size=100):
-        super().__init__(tickdata=tickdata, goal=goal, subgoals=subgoals,
-                         exchange=exchange, level=level, side=side,
-                         reward=reward, unit_size=unit_size)
+    def __init__(self, tickdata, goal:int, exchange: callable,
+                 level: int, side: str,  quote_length=1,
+                 reward='sparse', unit_size=100):
+        super().__init__(tickdata=tickdata, goal=goal, exchange=exchange,
+                         level=level, side=side, reward=reward,
+                         unit_size=unit_size)
         self._quote_length = quote_length
 
     @property
-    def observation_space_n(self)->tuple:
+    def intrinsic_observation_space_n(self)->tuple:
         ''' (intrinsic state, extrinsic state)
         '''
         n = (2, 2 * len(self._data.quote.level))
@@ -363,11 +367,11 @@ class RecurrentTranche(BasicTranche):
         filled_ratio = sum(self._subfilled['size']) / self._subgoal['size']
         return (np.array([time_ratio, filled_ratio], dtype=np.float32), np.array(history, dtype=np.float32))
     
-    def extrinsic_state(self)->np.array:
+    def _extrinsic_state(self)->np.array:
         time_ratio = (self._t - self._time[0]) / (self._time[-1] - self._time[0])
         filled_ratio = sum(self._total_filled['size']) / self._goal
         if self._t == self._time[0]:
-            trade_volume = 8
+            trade_volume = 6
         else:
             trade_volume = np.log10(self._data.trade.between(self._substart, self._t)['size'].sum() + 1e-10)
         state = [time_ratio, filled_ratio, trade_volume]
