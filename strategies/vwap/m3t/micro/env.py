@@ -174,6 +174,30 @@ class BasicTranche(abc.ABC):
         return level_space
 
 
+class BaselineTranche(BasicTranche):
+    
+    def __init__(self, tickdata, task:pd.Series,
+                 exchange:callable, level:int, side:str,
+                 quote_length=1, reward='sparse'):
+        super().__init__(tickdata=tickdata, task=task,
+                         exchange=exchange, level=level,
+                         side=side, reward=reward)
+        self._quote_length = quote_length
+
+    @property
+    def observation_space_n(self)->int:
+        ''' intrinsic
+        '''
+        n = 2
+        return n
+
+    def _state(self)->np.array:
+        time_ratio  = (self._t - self._task['start']) / (self._task['end'] - self._task['start'])
+        filled_ratio = sum(self._total_filled['size']) / self._task['goal']
+        state = [time_ratio, filled_ratio]
+        return np.array(state, dtype=np.float32)
+
+
 # 2.0.0/2.5.0 version env
 class HistoricalTranche(BasicTranche):
     

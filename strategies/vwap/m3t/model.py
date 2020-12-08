@@ -21,15 +21,24 @@ class MicroBaseline(object):
             raise ValueError('lb must be less than ub.')
         self._lb = lb
         self._ub = ub
+        self._action = [
+            torch.zeros(2*level+1),
+            torch.zeros(2*level+1),
+            torch.zeros(2*level+1)
+            ]
         # action[0] is benifit, action[1] is cost.
         if side == 'buy':
-            self._action = [level-1, level, 2 * level]
+            self._action[0][level-1] = 1
+            self._action[1][level]   = 1
+            self._action[2][-1]      = 1
         elif side == 'sell':
-            self._action = [level, level-1, 2 * level]
+            self._action[0][level]   = 1
+            self._action[1][level-1] = 1
+            self._action[2][-1]      = 1
         else:
             raise ValueError('unknown transaction side.')
 
-    def __call__(self, time_ratio, filled_ratio):
+    def __call__(self, state):
         '''
         arugment:
         ---------
@@ -39,6 +48,8 @@ class MicroBaseline(object):
         -------
         action: int.
         '''
+        time_ratio, filled_ratio = state
+        time_ratio = 1e-10 if time_ratio == 0 else time_ratio
         if filled_ratio == 1:
             return self._action[2]
         if filled_ratio / time_ratio < self._lb:

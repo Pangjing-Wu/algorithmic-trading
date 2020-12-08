@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 
 from .profile import get_tranche_time
-from ..model import BaselineMacro
+from ..model import MacroBaseline
 
 
 class MacroTrader(object):
