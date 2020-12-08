@@ -91,7 +91,11 @@ class AShareExchange(object):
             raise RuntimeError("unknown error occured during transaction.") 
         # execute orders.
         while self.__order.pos == 0 and level <= order_level:
-            price = quote.loc[level, 'price']
+            # avoid next level overflow.
+            try:
+                price = quote.loc[level, 'price']
+            except KeyError:
+                break
             if (self.__order.side == 'buy' and order_level[:3] == 'ask') or (
                 self.__order.side == 'sell' and order_level[:3] == 'bid'):
                 size = quote[quote['price']==price]['size'].sum()
