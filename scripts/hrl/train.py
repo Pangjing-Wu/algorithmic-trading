@@ -14,21 +14,20 @@ from exchange.stock import AShareExchange
 from strategies.vwap.hrl.datamgr import TrancheDataset
 from strategies.vwap.hrl.agent import HierarchicalQ
 from strategies.vwap.hrl.env import HistoricalTranche, RecurrentTranche
-from strategies.vwap.hrl.model import HybridLSTM, MLP
+from strategies.vwap.hrl.model import HybridLSTM, HybridAttenBiLSTM, MLP
 
 
 def parse_args():
     parser = argparse.ArgumentParser('train hierarchical reinforcement trader')
-    parser.add_argument('--env', type=str, help='RL environment {Historical/Recurrent}')
     parser.add_argument('--eps', type=float, help='epsilon greedy rate')
     parser.add_argument('--cuda', action='store_true', help='use cuda in training')
     parser.add_argument('--stock', type=str, help='stock code')
-    parser.add_argument('--model', type=str, help='RL agent based model {Linear/HybridLSTM}')
+    parser.add_argument('--model', type=str, help='RL agent based model {HybridLSTM/}')
     parser.add_argument('--agent', type=str, help='RL agent {HierarchicalQ/}')
     parser.add_argument('--reward', type=str, help='environment reward type {sparse/dense}')
     parser.add_argument('--episode', type=int, help='episode for training')
     parser.add_argument('--checkpoint', default=0, type=int, help='save model per checkpoint')
-    parser.add_argument('--quote_length', default=1, type=int, help='length of quote data for training')
+    parser.add_argument('--quote_length', default=5, type=int, help='length of quote data for training')
     parser.add_argument('--start_episode', default=0, type=int, help='start episode')
     return parser.parse_args()
 
@@ -37,6 +36,9 @@ def generate_tranche_envs(dataset, env, args, config):
     envs = list()
     for data in dataset:
         goal = random.sample(config['hrl']['goal_pool'], 1)[0]
+        # remove environment with bad liquidity
+        if data.trade['size'].sum() < goal * 100:
+            continue
         exchange = AShareExchange(data, wait_trade=config['exchange']['wait_trade'])
         envs.append(
             env(
@@ -70,10 +72,10 @@ def main(args, config):
         drop_length=config['hrl']['n_history']
         )
 
-    if args.env == 'Recurrent':
+    if args.model in ['HybridLSTM', 'HybridAttenBiLSTM']:
         env = RecurrentTranche
     else:
-        raise ValueError('unknown environment')
+        raise ValueError('unknown model')
 
     envs = generate_tranche_envs(tranches.train_set, env, args, config)
 
@@ -96,6 +98,17 @@ def main(args, config):
             dropout=model_config[args.model]['dropout'],
             device=device
             )
+    elif args.model == 'HybridAttenBiLSTM':
+        micro_model = HybridAttenBiLSTM(
+            input_size=envs[0].intrinsic_observation_space_n, 
+            output_size=envs[0].intrinsic_action_space_n,
+            hidden_size=model_config[args.model]['hidden_size'],
+            num_goals=envs[0].extrinsic_action_space_n,
+            num_layers=model_config[args.model]['num_layers'],
+            dropout=model_config[args.model]['dropout'],
+            attention_size=model_config[args.model]['attention_size'],
+            device=device
+        )
     else:
         raise ValueError('unknown model.')
 
@@ -115,8 +128,9 @@ def main(args, config):
     else:
         raise ValueError('unkonwn agent')
 
-    model_dir = os.path.join(config['model_dir'], 'hrl', args.stock, args.agent, 
-                             "%s-%d" % (args.model, args.quote_length))
+    model_dir = os.path.join(config['model_dir'], 'hrl', args.stock, args.agent,
+                             "%s-len%d" % (args.model, args.quote_length),
+                             "%s-eps%02d" % (args.reward, int(args.eps*10)))
     
     agent.train(envs=envs, macro_model=macro_model, micro_model=micro_model,
                 model_dir=model_dir, episode=args.episode, 

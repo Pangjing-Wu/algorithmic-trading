@@ -72,6 +72,12 @@
                 "hidden_size": 128,
                 "num_layers": 1,
                 "dropout": 0
+            },
+            "HybridAttenBiLSTM":{
+                "hidden_size": 128,
+                "num_layers": 1,
+                "dropout": 0,
+                "attention_size": 64
             }
         },
         "agent":{
