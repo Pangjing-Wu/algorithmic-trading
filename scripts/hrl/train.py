@@ -13,7 +13,7 @@ from data.tickdata import CSVDataset
 from exchange.stock import AShareExchange
 from strategies.vwap.hrl.datamgr import TrancheDataset
 from strategies.vwap.hrl.agent import HierarchicalQ
-from strategies.vwap.hrl.env import HistoricalTranche, RecurrentTranche
+from strategies.vwap.hrl.env import RecurrentTranche
 from strategies.vwap.hrl.model import HybridLSTM, HybridAttenBiLSTM, MLP
 
 
