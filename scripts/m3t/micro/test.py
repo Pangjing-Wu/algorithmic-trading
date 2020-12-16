@@ -15,6 +15,7 @@ from strategies.vwap.m3t.micro.env import BaselineTranche, HistoricalTranche, Re
 from strategies.vwap.m3t.model import HybridLSTM, Linear, MicroBaseline
 from strategies.vwap.m3t.micro.trader import MicroTrader
 
+
 def parse_args():
     parser = argparse.ArgumentParser('train reinforcement micro tader')
     parser.add_argument('--stock', type=str, help='stock code')
@@ -31,6 +32,10 @@ def generate_tranche_envs(dataset, env, time, args, config):
     envs = list()
     for data in dataset:
         goal = random.sample(config['m3t']['micro']['goal_pool'], 1)[0]
+        # remove environment with bad liquidity
+        trade = data.trade.between(time[0],time[1])
+        if trade['size'].sum() < goal * 100:
+            continue
         task = pd.Series(dict(start=time[0], end=time[1], goal=goal))
         exchange = AShareExchange(data, wait_trade=config['exchange']['wait_trade'])
         envs.append(

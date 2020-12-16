@@ -37,6 +37,10 @@ def generate_tranche_envs(dataset, env, time, args, config):
     envs = list()
     for data in dataset:
         goal = random.sample(config['m3t']['micro']['goal_pool'], 1)[0]
+        # remove environment with bad liquidity
+        trade = data.trade.between(time[0],time[1])
+        if trade['size'].sum() < goal * 100:
+            continue
         task = pd.Series(dict(start=time[0], end=time[1], goal=goal))
         exchange = AShareExchange(data, wait_trade=config['exchange']['wait_trade'])
         envs.append(
@@ -114,9 +118,10 @@ def main(args, config):
     else:
         raise ValueError('unkonwn agent.')
 
-    model_dir = os.path.join(config['model_dir'], 'm3t', 'micro', args.stock,
-                                args.agent, "%s-%d" % (args.model, args.quote_length),
-                                '%d-%d' % (args.i_tranche, tranches.n))
+    model_dir = os.path.join(config['model_dir'], 'm3t', args.stock, args.agent,
+                             "%s-len%d" % (args.model, args.quote_length),
+                             "%s-eps%02d" % (args.reward, int(args.eps*10)),
+                             '%d-%d' % (args.i_tranche, tranches.n))
     
     agent.train(envs=envs, model=model, model_dir=model_dir,
                 episode=args.episode, start_episode=args.start_episode)
