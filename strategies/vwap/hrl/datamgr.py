@@ -46,8 +46,11 @@ class TrancheDataset(object):
         ----------
         i_tranche: int, tranche id, start from 1.
         '''
-        self.__check_tranche(i)
-        self.__time = self.__times[i-1]
+        if i == None:
+            self.__time = self.__times
+        else:
+            self.__check_tranche(i)
+            self.__time = self.__times[i-1]
         self.__build_dataset()
         return self
 
@@ -56,7 +59,7 @@ class TrancheDataset(object):
         n_train = int(n * self.__split[0])
         self.__train_set = list()
         self.__test_set  = list()
-        for time in self.__times:
+        for time in self.__time:
             self.__train_set += [data.between(*time) for data in self.__dataset[:n_train]]
             self.__test_set  += [data.between(*time) for data in self.__dataset[n_train:]]
 
