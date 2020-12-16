@@ -17,7 +17,7 @@ class TrancheDataset(object):
     '''
 
     def __init__(self, dataset, split:List[float], i_tranche:int,
-                 time_range:List[int], interval=int, drop_length=0):
+                 time_range:List[int], interval:int, drop_length=0):
         self.__check_split(split)
         self.__times   = get_tranche_time(time_range, interval)
         self.__n       = len(self.__times)
