@@ -6,7 +6,7 @@ eps=1.0
 streps='10'
 episode=10000
 quote_length=5
-stocklist="./data/stocklist/sample-8.txt"
+stocklist="./config/stocklist/sample-8.txt"
 
 cat $stocklist| while read stock name; do
     for i in $(seq 1 $tranches); do

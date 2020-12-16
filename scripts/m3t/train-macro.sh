@@ -1,4 +1,4 @@
-stocklist="./data/stocklist/sample-8.txt"
+stocklist="./config/stocklist/sample-8.txt"
 epoch=200
 models=("Linear" "MLP" "LSTM")
 
