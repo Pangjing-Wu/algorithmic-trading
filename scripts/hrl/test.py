@@ -75,7 +75,7 @@ def test(macro_model, micro_model, envs, verbose=False):
             print('ave. in. reward = %.5f, ' % in_rewards[-1], end='')
             print('step = %d, slippages = %.5f' % (steps[-1], slippages[-1]))
     report = dict(ex_reward=ex_rewards, in_reward=in_rewards,
-                  step=steps, metrics=env.metrics())
+                  step=steps, slippage=slippages)
     report = pd.DataFrame(report)
     print(report.describe())
     print(pd.Series(subgoals).value_counts())
