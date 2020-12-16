@@ -169,6 +169,9 @@ class BasicTranche(abc.ABC):
         self._substep += 1
         if self._t == self._time[-1] or sum(self._total_filled['size']) == self._goal:
             self._final = True
+            # print('final')
+            # print('time: %s-%s' % (self._t, self._time[-1]))
+            # print('size: %s-%s' % (sum(self._total_filled['size']), self._goal))
             self._subfinal = True
         if self._substep == self._subgoal['step'] or sum(self._subfilled['size']) == self._subgoal['size']:
             self._subfinal = True
@@ -192,7 +195,7 @@ class BasicTranche(abc.ABC):
         self.__reset_subgoal()
         self._subgoal = dict(
             step=self._subgoals[i].step,
-            size=int(self._subgoals[i].ratio * self._goal)
+            size=int(self._subgoals[i].ratio * self._goal // 100 * 100)
         )
         return self._intrinsic_state()
 
