@@ -154,6 +154,8 @@ class BasicTranche(abc.ABC):
         order = self._exchange.step(self._t)
         if order != None:
             self._filled = order.filled[order.filled['time'] == self._t]
+            if int(sum(self._filled['size'])) % 100 != 0:
+                raise RuntimeError('illegal filled size %d' % int(sum(self._filled['size'])))
             time = self._filled['time'].values.tolist()
             size = self._filled['size'].values.tolist()
             price = self._filled['price'].values.tolist()
@@ -169,9 +171,6 @@ class BasicTranche(abc.ABC):
         self._substep += 1
         if self._t == self._time[-1] or sum(self._total_filled['size']) == self._goal:
             self._final = True
-            # print('final')
-            # print('time: %s-%s' % (self._t, self._time[-1]))
-            # print('size: %s-%s' % (sum(self._total_filled['size']), self._goal))
             self._subfinal = True
         if self._substep == self._subgoal['step'] or sum(self._subfilled['size']) == self._subgoal['size']:
             self._subfinal = True
@@ -196,7 +195,7 @@ class BasicTranche(abc.ABC):
         self._subgoal = dict(
             step=self._subgoals[i].step,
             size=int(self._subgoals[i].ratio * self._goal // 100 * 100)
-        )
+            )
         return self._intrinsic_state()
 
     def _extrinsic_reward(self):

@@ -117,6 +117,8 @@ class BasicTranche(abc.ABC):
         order = self._exchange.step(self._t)
         if order != None:
             self._filled = order.filled[order.filled['time'] == self._t]
+            if int(sum(self._filled['size'])) % 100 != 0:
+                raise RuntimeError('illegal filled size %d' % int(sum(self._filled['size'])))
             self._total_filled['time']  += self._filled['time'].values.tolist()
             self._total_filled['size']  += self._filled['size'].values.tolist()
             self._total_filled['price'] += self._filled['price'].values.tolist()
