@@ -14,13 +14,23 @@ class TrancheDataset(object):
         i_tranche: int, tranche id, start from 1.
     '''
 
-    def __init__(self, dataset, split:List[float], time_range:List[int], interval=int, drop_length=0):
+    def __init__(self, dataset, split:List[float], time_range:List[int],
+                 interval:int, drop_length, i_tranche=None):
         self.__check_split(split)
-        self.__check_pair_in_list(time_range)
         self.__times   = self.__get_tranche_time(time_range, interval)
+        self.__n       = len(self.__times)
         self.__split   = split
+        self.__dates   = dataset.dates[drop_length:]
         self.__dataset = dataset[drop_length:]
-        self.__build_dataset()
+        self.set_tranche(i_tranche)
+
+    @property
+    def n(self):
+        return self.__n
+
+    @property
+    def time(self):
+        return self.__time
 
     @property
     def train_set(self)->list:
@@ -29,6 +39,17 @@ class TrancheDataset(object):
     @property
     def test_set(self)->list:
         return self.__test_set
+
+    def set_tranche(self, i:int):
+        '''
+        Arguments:
+        ----------
+        i_tranche: int, tranche id, start from 1.
+        '''
+        self.__check_tranche(i)
+        self.__time = self.__times[i-1]
+        self.__build_dataset()
+        return self
 
     def __build_dataset(self):
         n = len(self.__dataset)
