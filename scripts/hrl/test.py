@@ -87,11 +87,11 @@ def main(args, config):
     dataset = CSVDataset(config['data']['path'], args.stock)
     tranches = TrancheDataset(
         dataset=dataset,
-        split=config['m3t']['micro']['split'],
+        split=config['hrl']['split'],
         i_tranche=args.i_tranche,
         time_range=config['data']['times'],
-        interval=config['m3t']['interval'],
-        drop_length=config['m3t']['macro']['n_history']
+        interval=config['hrl']['interval'],
+        drop_length=config['hrl']['n_history']
         )
     
     if args.model == 'HybridLSTM':
