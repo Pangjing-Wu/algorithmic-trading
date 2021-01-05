@@ -15,7 +15,7 @@ class TrancheDataset(object):
     '''
 
     def __init__(self, dataset, split:List[float], time_range:List[int],
-                 interval:int, drop_length, i_tranche=None):
+                 interval:int, drop_length:int, i_tranche=None):
         self.__check_split(split)
         self.__times   = self.__get_tranche_time(time_range, interval)
         self.__n       = len(self.__times)
@@ -47,21 +47,18 @@ class TrancheDataset(object):
         i_tranche: int, tranche id, start from 1.
         '''
         if i == None:
-            self.__time = self.__times
+            self.__time = (self.__times[0][0], self.__times[-1][-1])
         else:
             self.__check_tranche(i)
             self.__time = self.__times[i-1]
-        self.__build_dataset()
+            self.__build_dataset()
         return self
 
     def __build_dataset(self):
         n = len(self.__dataset)
         n_train = int(n * self.__split[0])
-        self.__train_set = list()
-        self.__test_set  = list()
-        for time in self.__time:
-            self.__train_set += [data.between(*time) for data in self.__dataset[:n_train]]
-            self.__test_set  += [data.between(*time) for data in self.__dataset[n_train:]]
+        self.__train_set = [data.between(*self.__time) for data in self.__dataset[:n_train]]
+        self.__test_set  = [data.between(*self.__time) for data in self.__dataset[n_train:]]
 
     def __get_tranche_time(self, time_range:List[int], interval:int)->Tuple[int]:
         times = list()
@@ -91,6 +88,3 @@ class TrancheDataset(object):
     def __check_pair_in_list(self, x):
         if len(x) < 2 and len(x) % 2 != 0:
             raise ValueError("argument should contain 2 or multiples of 2 elements.")
-
-
-

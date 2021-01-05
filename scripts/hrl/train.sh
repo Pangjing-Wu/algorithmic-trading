@@ -16,7 +16,7 @@ cat $stocklist| while read stock name; do
                 --stock $stock --episode $episode --agent $agent --eps $eps
                 --model $model --reward $reward --quote_length $quote_length --cuda
                 2>&1 >./results/logs/vwap/hrl/$stock-$model-eps$streps-$reward-len$quote_length.log"
-            echo $cmd&
+            eval $cmd&
             sleep 2
         done
     done
