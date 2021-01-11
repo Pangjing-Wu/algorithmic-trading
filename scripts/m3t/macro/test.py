@@ -70,7 +70,8 @@ def main(args, config):
     model_file = os.path.join(config['model_dir'], 'm3t', 'macro',
                                 args.stock, args.model, 'best.pt')
     model_file = None if isinstance(model, MacroBaseline) else model_file
-        
+    
+    print('model: %s' % args.model)
     criterion = nn.MSELoss()
     test(model=model, model_file=model_file, dataset=data, criterion=criterion)
 
