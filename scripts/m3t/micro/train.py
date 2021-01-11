@@ -123,8 +123,8 @@ def main(args, config):
                              "%s-eps%02d" % (args.reward, int(args.eps*10)),
                              '%d-%d' % (args.i_tranche, tranches.n))
     
-    agent.train(envs=envs, model=model, model_dir=model_dir,
-                episode=args.episode, start_episode=args.start_episode)
+    agent.train(envs=envs, model=model, model_dir=model_dir, episode=args.episode,
+                checkpoint=args.checkpoint, start_episode=args.start_episode)
         
 
 if __name__ == '__main__':
