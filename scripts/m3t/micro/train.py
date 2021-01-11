@@ -118,7 +118,7 @@ def main(args, config):
     else:
         raise ValueError('unkonwn agent.')
 
-    model_dir = os.path.join(config['model_dir'], 'm3t', args.stock, args.agent,
+    model_dir = os.path.join(config['model_dir'], 'm3t', 'micro', args.stock, args.agent,
                              "%s-len%d" % (args.model, args.quote_length),
                              "%s-eps%02d" % (args.reward, int(args.eps*10)),
                              '%d-%d' % (args.i_tranche, tranches.n))
