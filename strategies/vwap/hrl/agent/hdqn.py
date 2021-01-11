@@ -110,7 +110,7 @@ class HierarchicalQ(BasicHRL):
         Q1 = torch.zeros(self._batch, device=self._device)
         Q1[non_final_mask] = self.__macro_target(non_final_next_s).max(1)[0].detach()
         Q_target = self._gamma * Q1.view(-1,1) + reward_batch
-        loss = self._macro_criterion(Q, Q_target)
+        loss = self._macro_criterion(Q.float(), Q_target.float())
         self._macro_optimizer.zero_grad()
         loss.backward()
         self._macro_optimizer.step()
@@ -128,7 +128,7 @@ class HierarchicalQ(BasicHRL):
         Q1 = torch.zeros(self._batch, device=self._device)
         Q1[non_final_mask] = self.__micro_target(non_final_next_s, non_final_goal).max(1)[0].detach()
         Q_target = self._gamma * Q1.view(-1,1) + reward_batch
-        loss = self._micro_criterion(Q, Q_target)
+        loss = self._micro_criterion(Q.float(), Q_target.float())
         self._micro_optimizer.zero_grad()
         loss.backward()
         self._micro_optimizer.step()

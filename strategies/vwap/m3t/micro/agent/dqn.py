@@ -55,7 +55,7 @@ class QLearning(BasicQ):
                     Q1 = torch.zeros(self._batch, device=self._device)
                     Q1[non_final_mask] = self.__target_net(non_final_next_s).max(1)[0].detach()
                     Q_target = self._gamma * Q1.view(-1,1) + reward_batch
-                    loss = self._criterion(Q, Q_target)
+                    loss = self._criterion(Q.float(), Q_target.float())
                     self._optimizer.zero_grad()
                     loss.backward()
                     self._optimizer.step()
