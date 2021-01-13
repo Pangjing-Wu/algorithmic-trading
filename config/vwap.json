@@ -24,7 +24,7 @@
                 "Linear": {},
                 "MLP": {"hidden_size": [32, 64, 32]},
                 "LSTM": {
-                    "hidden_size": 128,
+                    "hidden_size": 64,
                     "num_layers": 1,
                     "dropout": 0
                 }
