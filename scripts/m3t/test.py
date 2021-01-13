@@ -90,7 +90,7 @@ def main(args, config):
         raise ValueError('unknown macro model')
 
     # load macro model
-    epoch = args.macro_epoch if args.macro_epoch != -1 else 'best'
+    epoch = args.macro_epoch if args.macro_epoch not in [-1, None] else 'best'
     macro_file = os.path.join(config['model_dir'], 'm3t', 'macro',
                                 args.stock, args.macro, '%s.pt' % epoch)
     macro_file = None if isinstance(macro, MacroBaseline) else macro_file
@@ -174,7 +174,7 @@ def main(args, config):
 
     #print args
     print('goal: %d,' % args.goal, end='')
-    print('macro: %s, epoch: %d, ' % (args.macro, args.macro_epoch), end='')
+    print('macro: %s, epoch: %s, ' % (args.macro, epoch), end='')
     print('agent: %s, micro: %s, ' % (args.agent, args.micro), end='')
     print('micro episode: %d, ' % args.micro_episode, end='')
     print('eps:1.0, reward type: %s, ' % args.reward, end='')
