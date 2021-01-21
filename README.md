@@ -26,11 +26,17 @@ Here is a quick start example for loading **algorithm-trading-environment**.
 
 > Train agent based on vwap trading strategies
 ```bash
-nohup python -u vwap.py --mode train --env histrical_hard_constrain --agent linear --stock 600000 --side sell --level 1 --tranche_id 0 2>&1 >./logs/600000-histical-hard-linear-0-8.log &
+nohup python -u vwap.py --mode train --env hard_constrain --agent linear --stock 600000 --side sell --level 1 --tranche_id 0 2>&1 >./logs/train/600000-hard-linear-0-8.log &
+```
+```bash
+nohup python -u vwap.py --mode train --env historical_hard_constrain --agent linear --stock 600000 --side sell --level 1 --tranche_id 0 2>&1 >./logs/train/600000-historical-hard-linear-0-8.log &
+```
+```bash
+nohup python -u vwap.py --mode train --env recurrent_hard_constrain --agent lstm --stock 600000 --side sell --level 1 --tranche_id 0 2>&1 >./logs/train/600000-recurrent-hard-lstm-0-8.log &
 ```
 > Test agent based on vwap trading strategies
 ```bash
-python -u vwap.py --mode test --env histrical_hard_constrain --agent linear --stock 600000 --side sell --level 1 --tranche_id 0
+python -u vwap.py --mode test --env historical_hard_constrain --agent linear --stock 600000 --side sell --level 1 --tranche_id 0 >./logs/test/600000-historical-hard-linear-0-8.log
 ```
 
 ## Contents

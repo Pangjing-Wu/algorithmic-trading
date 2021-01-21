@@ -11,22 +11,21 @@ import torch.nn as nn
 sys.path.append('./')
 from data.tickdata import CSVDataset
 from exchange.stock import AShareExchange
-from strategies.vwap.hrl.datamgr import VolumeProfileDataset, TrancheDataset 
-from strategies.vwap.hrl.env import RecurrentTranche
-from strategies.vwap.hrl.model import HybridAttenBiLSTM, HybridLSTM, MLP
-from strategies.vwap.hrl.trader import HRLTrader
-from strategies.vwap.m3t.model import MacroBaseline, LSTM
-
+from strategies.vwap.m2t.datamgr import VolumeProfileDataset, TrancheDataset 
+from strategies.vwap.m2t.micro.env import (BaselineTranche, HistoricalTranche,
+                                           RecurrentTranche)
+from strategies.vwap.m2t.micro.trader import MicroTrader
+from strategies.vwap.m2t.model import (LSTM, HybridLSTM, Linear, MacroBaseline,
+                                       MicroBaseline)
 
 dotmut = lambda x, y: sum([a * b for a, b in zip(x, y)])
-
 
 def parse_args():
     parser = argparse.ArgumentParser('test macro trader')
     parser.add_argument('--goal', type=int, help='total order volume')
     parser.add_argument('--stock', type=str, help='stock code')
     parser.add_argument('--macro', type=str, help='macro model {Baseline/LSTM}')
-    parser.add_argument('--micro', type=str, help='RL agent based model {HybridLSTM/HybridAttenBiLSTM}')
+    parser.add_argument('--micro', type=str, help='RL agent based model {Baseline/Linear/HybridLSTM}')
     parser.add_argument('--agent', type=str, help='RL agent {QLearning/}')
     parser.add_argument('--reward', type=str, help='environment reward type {sparse/dense}')
     parser.add_argument('--macro_epoch', type=int, help='macro model epoch')
@@ -44,17 +43,17 @@ def generate_tranche_envs(dataset, env, volume_profiles, time, args, config)->li
         if trade['size'].sum() < subgoal * 100:
             envs.append(None)
         else:
+            task = pd.Series(dict(start=time[0], end=time[1], goal=subgoal))
             exchange = AShareExchange(data, wait_trade=config['exchange']['wait_trade'])
             envs.append(
                 env(
                     tickdata=data,
-                    goal=subgoal,
+                    task=task,
                     exchange=exchange,
-                    level=config['hrl']['level'],
-                    side=config['hrl']['side'],
+                    level=config['m2t']['micro']['level'],
+                    side=config['m2t']['side'],
                     quote_length=args.quote_length,
-                    reward=args.reward,
-                    unit_size=config['exchange']['unit_size']
+                    reward=args.reward
                     )
                 )
     return envs
@@ -67,14 +66,14 @@ def main(args, config):
     # macro dataset
     vp_data = VolumeProfileDataset(
         dataset=dataset,
-        split=config['m3t']['micro']['split'], 
+        split=config['m2t']['micro']['split'], 
         time_range=config['data']['times'],
-        interval=config['m3t']['interval'],
-        history_length=config['m3t']['macro']['n_history']
+        interval=config['m2t']['interval'],
+        history_length=config['m2t']['macro']['n_history']
         )
 
-    macro_config = config['m3t']['macro']['model']
-    micro_config = config['hrl']['model']
+    macro_config = config['m2t']['macro']['model']
+    micro_config = config['m2t']['micro']['model']
 
     # macro model
     if args.macro == 'Baseline':
@@ -92,7 +91,7 @@ def main(args, config):
 
     # load macro model
     epoch = args.macro_epoch if args.macro_epoch not in [-1, None] else 'best'
-    macro_file = os.path.join(config['model_dir'], 'm3t', 'macro',
+    macro_file = os.path.join(config['model_dir'], 'm2t', 'macro',
                                 args.stock, args.macro, '%s.pt' % epoch)
     macro_file = None if isinstance(macro, MacroBaseline) else macro_file
     if macro_file is not None:
@@ -100,10 +99,12 @@ def main(args, config):
     macro.eval()
 
     # micro environment
-    if args.micro == 'HybridLSTM':
+    if args.micro == 'Linear':
+        env = HistoricalTranche
+    elif args.micro == 'HybridLSTM':
         env = RecurrentTranche
-    elif args.micro == 'HybridAttenBiLSTM':
-        env = RecurrentTranche
+    elif args.micro == 'Baseline':
+        env = BaselineTranche
     else:
         raise ValueError('unknown environment')
 
@@ -116,12 +117,12 @@ def main(args, config):
         # micro dataset
         tranches = TrancheDataset(
             dataset=dataset,
-            split=config['hrl']['split'],
+            split=config['m2t']['micro']['split'],
             i_tranche=i+1,
             time_range=config['data']['times'],
-            interval=config['hrl']['interval'],
-            drop_length=config['hrl']['n_history']
-        )
+            interval=config['m2t']['interval'],
+            drop_length=config['m2t']['macro']['n_history']
+            )
         train_env = generate_tranche_envs(tranches.train_set, env, train_vp,
                                           tranches.time, args, config)
         test_env  = generate_tranche_envs(tranches.test_set, env, test_vp,
@@ -136,65 +137,58 @@ def main(args, config):
             demo_env = e
             break
 
-    # set agents
-    medium_model = MLP(
-        input_size=demo_env.extrinsic_observation_space_n, 
-        hidden_size=micro_config['MLP']['hidden_size'],
-        output_size=demo_env.extrinsic_action_space_n,
-        device=device
-        )
+    # load agents
+    agents = list()
+    for i in range(tranches.n):
+        if args.micro == 'Linear':
+            micro = Linear(
+                input_size=demo_env.observation_space_n, 
+                output_size=demo_env.action_space_n,
+                device=device
+                )
+        elif args.micro == 'HybridLSTM':
+            micro = HybridLSTM(
+                input_size=demo_env.observation_space_n,
+                output_size=demo_env.action_space_n,
+                hidden_size=micro_config[args.micro]['hidden_size'],
+                num_layers=micro_config[args.micro]['num_layers'],
+                dropout=micro_config[args.micro]['dropout'],
+                device=device
+                )
+        elif args.micro == 'Baseline':
+            micro = MicroBaseline(
+                side=config['m2t']['side'],
+                level=config['m2t']['micro']['level'],
+                lb=1.01,
+                ub=1.1
+                )
+        else:
+            raise ValueError('unknown model.')
 
-    if args.micro == 'HybridLSTM':
-        micro_model = HybridLSTM(
-            input_size=demo_env.intrinsic_observation_space_n, 
-            output_size=demo_env.intrinsic_action_space_n,
-            hidden_size=micro_config[args.micro]['hidden_size'],
-            num_goals=demo_env.extrinsic_action_space_n,
-            num_layers=micro_config[args.micro]['num_layers'],
-            dropout=micro_config[args.micro]['dropout'],
-            device=device
-            )
-    elif args.micro == 'HybridAttenBiLSTM':
-        micro_model = HybridAttenBiLSTM(
-            input_size=demo_env.intrinsic_observation_space_n, 
-            output_size=demo_env.intrinsic_action_space_n,
-            hidden_size=micro_config[args.micro]['hidden_size'],
-            num_goals=demo_env.extrinsic_action_space_n,
-            num_layers=micro_config[args.micro]['num_layers'],
-            dropout=micro_config[args.micro]['dropout'],
-            attention_size=micro_config[args.micro]['attention_size'],
-            device=device
-            )
-    else:
-        raise ValueError('unknown model.')
+        micro_file = os.path.join(config['model_dir'], 'm2t', 'micro',
+                                 args.stock, args.agent,
+                                 '%s-len%d' % (args.micro, args.quote_length),
+                                 '%s-eps10' % args.reward,
+                                 '%d-%d' % (i+1, tranches.n),
+                                 '%d.pt' % args.micro_episode)
+        if not isinstance(micro, MicroBaseline):
+            weight = torch.load(micro_file, map_location='cpu')
+            micro.load_state_dict(weight)
+            micro.eval()
+        agents.append(MicroTrader(micro))
 
     del demo_env
-
-    # load agents
-    model_path = os.path.join(config['model_dir'], 'hrl', args.stock, args.agent,
-                              "%s-len%d" % (args.micro, args.quote_length),
-                              '%s-eps10' % args.reward)
-    medium_file  = os.path.join(model_path, 'macro-%d.pt' % args.micro_episode)
-    micro_file   = os.path.join(model_path, 'micro-%d.pt' % args.micro_episode)
-    medium_weight = torch.load(medium_file, map_location='cpu')
-    micro_weight  = torch.load(micro_file, map_location='cpu')
-    medium_model.load_state_dict(medium_weight)
-    micro_model.load_state_dict(micro_weight)
-    medium_model.eval()
-    micro_model.eval()
-    agent = HRLTrader(medium_model, micro_model)
 
     #print args
     print('goal: %d, ' % args.goal, end='')
     print('macro: %s, epoch: %s, ' % (args.macro, epoch), end='')
-    print('agent: %s, med: MLP, micro: %s, ' % (args.agent, args.micro), end='')
+    print('agent: %s, micro: %s, ' % (args.agent, args.micro), end='')
     print('micro episode: %d, ' % args.micro_episode, end='')
     print('eps:1.0, reward type: %s, ' % args.reward, end='')
     print('quote length: %d, ' % args.quote_length)
 
     # test on train set
     for envs in [train_envs, test_envs]:
-        subgoals  = [[] for _ in range(envs.shape[1])]
         slippages = []
         for t in range(envs.shape[0]):
             demo_env = None
@@ -209,13 +203,11 @@ def main(args, config):
             market_vwap = dotmut(trade['price'], trade['size']) / trade['size'].sum()
             filled = dict(price=[], size=[])
             for i in range(envs.shape[1]):
-                subgoal = list()
                 env = envs[t,i]
                 if env is None:
                     continue
                 else:
-                    ret = agent(env)
-                    subgoals[i] += ret['subgoals']
+                    agents[i](env)
                     filled['price'] += env.filled['price']
                     filled['size']  += env.filled['size']
             vwap = dotmut(filled['price'], filled['size']) / sum(filled['size'])
@@ -224,15 +216,11 @@ def main(args, config):
             print('test results of training set')
         else:
             print('test results of test set')
-        print('slippage:')
         print(pd.Series(slippages).describe())
-        print('subgoals:')
-        for i, subgoal in enumerate(subgoals):
-            print('tranche %d:' % (i+1))
-            print(pd.Series(subgoals[i]).value_counts()) 
+                    
 if __name__ == '__main__':
     args  = parse_args()
     config = json.load(open('./config/vwap.json', 'r'), encoding='utf-8')
     main(args, config)
 
-# python ./scripts/hrl/test.py --goal 200000 --stock 600000 --macro Baseline --micro HybridLSTM --agent HierarchicalQ --reward dense --micro_episode 10000 --quote_length 5
+# python ./scripts/m2t/test.py --goal 200000 --stock 600000 --macro Baseline --micro Baseline --agent QLearning --reward dense --micro_episode 10000 --quote_length 5

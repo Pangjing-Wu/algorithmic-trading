@@ -11,7 +11,7 @@
         "unit_size": 100
     },
 
-    "m3t": {
+    "m2t": {
         "side": "sell",
         "interval": 1800000,
         "macro": {
@@ -56,7 +56,7 @@
         }
     },
 
-    "hrl": {
+    "m3t": {
         "side": "sell",
         "interval": 1800000,
         "n_history": 20,

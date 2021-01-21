@@ -6,9 +6,9 @@ cat $stocklist | while read stock name; do
     echo "$name($stock) start at $(date)"
     for model in ${models[@]}; do
         echo "     [START] train $model at $(date)"
-        cmd="python -u ./scripts/m3t/macro/train.py 
+        cmd="python -u ./scripts/m2t/macro/train.py 
             --stock $stock --epoch 200 --model $model --checkpoint 0 --cuda
-            2>&1 >./results/logs/vwap/m3t/macro/$stock-$model.log"
+            2>&1 >./results/logs/vwap/m2t/macro/$stock-$model.log"
         eval $cmd
         echo "     [DONE] $(date)"
     done

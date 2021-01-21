@@ -1,31 +1,34 @@
-import json
 import sys
+
 sys.path.append('./')
-sys.path.append('./test')
+from data.tickdata import CSVDataset
+from exchange.stock import AShareExchange, ClientOrder
 
-import pytest
+path = '/data/al2/'
+stock = '600000'
 
-from data.datatype import TickData
-from exchange.stock import GeneralExchange
-from utils.dataloader import load_tickdata, load_case
+dataset = CSVDataset(path, stock)
+tickdata = dataset[0]
+
+exchange = AShareExchange(tickdata, wait_trade=3)
+
+'''
+order = ClientOrder(tickdata.quote.timeseries[1], 'sell', 9.58, 100)
+
+exchange.issue(1, order)
+exchange.issue(2, order)
+exchange.issue(1, order)
+
+print(tickdata.quote.get(tickdata.quote.timeseries[1]))
+order = exchange.step(tickdata.quote.timeseries[1])
+print(order)
+'''
 
 
-cases, params = load_case('orders.txt')
+order = ClientOrder(tickdata.quote.timeseries[2], 'sell', 9.6, 2000000)
+exchange.issue(1, order)
 
-
-@pytest.fixture(scope='class')
-def exchange():
-    data_config = json.load(open('test/config/data.json', 'r'))
-    quote, trade = load_tickdata(data_config['stock'], data_config['date'])
-    data = TickData(quote, trade)
-    return GeneralExchange(data, 3)
-
-
-class TestGeneralExchange(object):
-
-    @pytest.mark.parametrize('params,excepted', params, ids=cases)
-    def test_transaction_engine(self, exchange, params, excepted):
-        order = params['order']
-        order, trade = exchange.transaction_engine(order)
-        assert order == excepted['order']
-        assert trade == excepted['trade']
+for i in range(2, 10):
+    print(tickdata.quote.get(tickdata.quote.timeseries[i]))
+    order = exchange.step(tickdata.quote.timeseries[i])
+    print(order.filled[order.filled['time'] == tickdata.quote.timeseries[i]]['size'].sum())

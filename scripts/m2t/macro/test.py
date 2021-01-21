@@ -8,8 +8,8 @@ import torch.nn as nn
 
 sys.path.append('./')
 from data.tickdata import CSVDataset
-from strategies.vwap.m3t.macro.datamgr import VolumeProfileDataset
-from strategies.vwap.m3t.model import LSTM, MLP, Linear, MacroBaseline
+from strategies.vwap.m2t.macro.datamgr import VolumeProfileDataset
+from strategies.vwap.m2t.model import LSTM, MLP, Linear, MacroBaseline
 
 
 def parse_args():
@@ -37,13 +37,13 @@ def main(args, config):
     dataset = CSVDataset(config['data']['path'], args.stock)
     data = VolumeProfileDataset(
         dataset = dataset,
-        split=config['m3t']['macro']['split'], 
+        split=config['m2t']['macro']['split'], 
         time_range=config['data']['times'],
-        interval=config['m3t']['interval'],
-        history_length=config['m3t']['macro']['n_history']
+        interval=config['m2t']['interval'],
+        history_length=config['m2t']['macro']['n_history']
         )
 
-    model_config = config['m3t']['macro']['model']
+    model_config = config['m2t']['macro']['model']
     if args.model == 'Baseline':
         model = MacroBaseline()
     elif args.model == 'Linear':
@@ -67,7 +67,7 @@ def main(args, config):
             )
     else:
         raise ValueError('unknown macro model')
-    model_file = os.path.join(config['model_dir'], 'm3t', 'macro',
+    model_file = os.path.join(config['model_dir'], 'm2t', 'macro',
                                 args.stock, args.model, 'best.pt')
     model_file = None if isinstance(model, MacroBaseline) else model_file
     

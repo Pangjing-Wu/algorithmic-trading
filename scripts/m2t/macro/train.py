@@ -8,8 +8,8 @@ import torch.nn as nn
 
 sys.path.append('./')
 from data.tickdata import CSVDataset
-from strategies.vwap.m3t.macro.datamgr import VolumeProfileDataset
-from strategies.vwap.m3t.model import LSTM, MLP, Linear
+from strategies.vwap.m2t.macro.datamgr import VolumeProfileDataset
+from strategies.vwap.m2t.model import LSTM, MLP, Linear
 
 
 def parse_args():
@@ -81,13 +81,13 @@ def main(args, config):
     dataset = CSVDataset(config['data']['path'], args.stock)
     data = VolumeProfileDataset(
         dataset = dataset,
-        split=config['m3t']['macro']['split'], 
+        split=config['m2t']['macro']['split'], 
         time_range=config['data']['times'],
-        interval=config['m3t']['interval'],
-        history_length=config['m3t']['macro']['n_history']
+        interval=config['m2t']['interval'],
+        history_length=config['m2t']['macro']['n_history']
         )
 
-    model_config = config['m3t']['macro']['model']
+    model_config = config['m2t']['macro']['model']
     if args.model == 'Linear':
         model = Linear(
             input_size=data.X_len, 
@@ -113,7 +113,7 @@ def main(args, config):
     else:
         raise ValueError('unknown model.')
 
-    model_dir = os.path.join(config['model_dir'], 'm3t', 'macro', args.stock, args.model)
+    model_dir = os.path.join(config['model_dir'], 'm2t', 'macro', args.stock, args.model)
     optimizer = torch.optim.Adam(model.parameters(), lr=model_config['lr'])
     criterion = nn.MSELoss()
     train(

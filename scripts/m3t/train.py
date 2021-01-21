@@ -11,10 +11,10 @@ import torch.nn as nn
 sys.path.append('./')
 from data.tickdata import CSVDataset
 from exchange.stock import AShareExchange
-from strategies.vwap.hrl.datamgr import TrancheDataset
-from strategies.vwap.hrl.agent import HierarchicalQ
-from strategies.vwap.hrl.env import RecurrentTranche
-from strategies.vwap.hrl.model import HybridLSTM, HybridAttenBiLSTM, MLP
+from strategies.vwap.m3t.datamgr import TrancheDataset
+from strategies.vwap.m3t.agent import HierarchicalQ
+from strategies.vwap.m3t.env import RecurrentTranche
+from strategies.vwap.m3t.model import HybridLSTM, HybridAttenBiLSTM, MLP
 
 
 def parse_args():
@@ -35,7 +35,7 @@ def parse_args():
 def generate_tranche_envs(dataset, env, args, config):
     envs = list()
     for data in dataset:
-        goal = random.sample(config['hrl']['goal_pool'], 1)[0]
+        goal = random.sample(config['m3t']['goal_pool'], 1)[0]
         # remove environment with bad liquidity
         if data.trade['size'].sum() < goal * 100:
             continue
@@ -45,8 +45,8 @@ def generate_tranche_envs(dataset, env, args, config):
                 tickdata=data,
                 goal=goal,
                 exchange=exchange,
-                level=config['hrl']['level'],
-                side=config['hrl']['side'],
+                level=config['m3t']['level'],
+                side=config['m3t']['side'],
                 quote_length=args.quote_length,
                 reward=args.reward,
                 unit_size=config['exchange']['unit_size']
@@ -66,10 +66,10 @@ def main(args, config):
 
     tranches = TrancheDataset(
         dataset=dataset,
-        split=config['hrl']['split'],
+        split=config['m3t']['split'],
         time_range=config['data']['times'],
-        interval=config['hrl']['interval'],
-        drop_length=config['hrl']['n_history']
+        interval=config['m3t']['interval'],
+        drop_length=config['m3t']['n_history']
         )
 
     if args.model in ['HybridLSTM', 'HybridAttenBiLSTM']:
@@ -79,7 +79,7 @@ def main(args, config):
 
     envs = generate_tranche_envs(tranches.train_set, env, args, config)
 
-    model_config = config['hrl']['model']
+    model_config = config['m3t']['model']
 
     macro_model = MLP(
         input_size=envs[0].extrinsic_observation_space_n, 
@@ -123,12 +123,12 @@ def main(args, config):
             criterion=dict(macro=macro_criterion, micro=micro_criterion),
             optimizer=dict(macro=macro_optimizer, micro=micro_optimizer),
             device=device,
-            **config['hrl']['agent']['HierarchicalQ']
+            **config['m3t']['agent']['HierarchicalQ']
             )
     else:
         raise ValueError('unkonwn agent')
 
-    model_dir = os.path.join(config['model_dir'], 'hrl', args.stock, args.agent,
+    model_dir = os.path.join(config['model_dir'], 'm3t', args.stock, args.agent,
                              "%s-len%d" % (args.model, args.quote_length),
                              "%s-eps%02d" % (args.reward, int(args.eps*10)))
     
