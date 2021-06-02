@@ -24,6 +24,7 @@ def dataloader(tranche, window):
         price  = list()
         volume = list()
         change = list()
+        # NOTE current order of orderbook is ask1 ,bid1, ask2, bid2, which performs better than the ragular form.
         for data in dataset:
             price  += rolling(data.quote.filter(regex=r'^ask|bid').values, window).tolist()[:-1]
             volume += rolling(data.quote.filter(regex=r'size').values, window).tolist()[:-1]

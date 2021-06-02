@@ -17,16 +17,16 @@ def parse_args():
     parser = argparse.ArgumentParser('train hierarchical reinforcement trader')
     parser.add_argument('--cuda', action='store_true', help='use cuda in training')
     parser.add_argument('--stock', type=str, help='stock code')
+    parser.add_argument('--i', type=int, help='i tranche')
     return parser.parse_args()
 
         
 
 def main(args, config):
-    i = 1
-    window = 20
+    window = config['data']['windows']
 
     if args.cuda and torch.cuda.is_available():
-            device = torch.device('cuda')
+        device = torch.device('cuda')
     else:
         device = torch.device('cpu')
 
@@ -36,14 +36,14 @@ def main(args, config):
         split=config['data']['split'],
         time_range=config['data']['times'],
         interval=config['data']['interval'],
-        drop_length=config['data']['n_history'],
-        i_tranche=i
+        drop_length=config['data']['nday_history'],
+        i_tranche=args.i
         )
     data = dataloader(tranche, window)
-    np.save('./dataset/600000.train.X', data['train']['X'])
-    np.save('./dataset/600000.train.y', data['train']['y'])
-    np.save('./dataset/600000.test.X', data['test']['X'])
-    np.save('./dataset/600000.test.y', data['test']['y'])
+    np.save(f'./scripts/dnn/dataset/{args.stock}-{args.i}.train.X', data['train']['X'])
+    np.save(f'./scripts/dnn/dataset/{args.stock}-{args.i}.train.y', data['train']['y'])
+    np.save(f'./scripts/dnn/dataset/{args.stock}-{args.i}.test.X', data['test']['X'])
+    np.save(f'./scripts/dnn/dataset/{args.stock}-{args.i}.test.y', data['test']['y'])
     model = None
     
 

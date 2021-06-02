@@ -7,3 +7,4 @@ results
 data/testdata
 data/.cache
 *.log
+*.npy

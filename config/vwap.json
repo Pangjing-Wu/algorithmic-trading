@@ -16,11 +16,11 @@
         "interval": 1800000,
         "macro": {
             "n_history": 20,
-            "split": [0.6, 0.2, 0.2],
+            "split": [0.8, 0.2],
             "model": {
                 "loss": "MSELoss",
-                "optimier": "Adam",
-                "lr": 0.1,
+                "optimier": "SGD",
+                "lr": 1e-4,
                 "Linear": {},
                 "MLP": {"hidden_size": [32, 64, 32]},
                 "LSTM": {
@@ -36,8 +36,8 @@
             "level": 1,
             "model": {
                 "loss": "MSELoss",
-                "optimier": "Adam",
-                "lr": 0.1,
+                "optimier": "SGD",
+                "lr": 5e-5,
                 "Linear": {},
                 "HybridLSTM": {
                     "hidden_size": 128,
@@ -65,8 +65,8 @@
         "level": 1,
         "model": {
             "loss": "MSELoss",
-            "optimier": "Adam",
-            "lr": 0.1,
+            "optimier": "SGD",
+            "lr": 5e-5,
             "MLP": {"hidden_size": [8]},
             "HybridLSTM": {
                 "hidden_size": 128,

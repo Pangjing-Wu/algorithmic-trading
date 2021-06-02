@@ -4,7 +4,8 @@
         "split": [0.8, 0.2],
         "times": [34200000, 41400000, 46800000, 53700000],
         "interval": 1800000,
-        "n_history": 20
+        "nday_history": 20,
+        "windows": 20
     },
     "model":{
         
