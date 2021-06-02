@@ -189,7 +189,7 @@ class TrancheDataset(object):
 
     def __check_split(self, split:List[float]):
         if len(split) != 2:
-            raise ValueError('the length of split must be 3.')
+            raise ValueError('the length of split must be 2.')
         if sum(split) != 1:
             raise ValueError('the sum of split must be 1.')
 
