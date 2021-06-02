@@ -70,14 +70,6 @@ class VolumeProfileDataset(object):
         return self.__train_date
 
     @property
-    def valid_set(self):
-        return self.__valid_set
-
-    @property
-    def valid_date(self):
-        return self.__valid_date
-
-    @property
     def test_set(self):
         return self.__test_set
 
@@ -96,20 +88,15 @@ class VolumeProfileDataset(object):
         X, y = self.__rolling_generate(np.array(dataset), self.__hist_len)
         X, y = torch.from_numpy(X), torch.from_numpy(y)
         n_train = int(X.shape[0] * self.__split[0] // self.__n_tranche * self.__n_tranche)
-        n_valid = int(X.shape[0] * self.__split[1] // self.__n_tranche * self.__n_tranche + n_train)
         self.__train_set = SupervisedData(X[:n_train], y[:n_train])
-        self.__valid_set = SupervisedData(X[n_train:n_valid], y[n_train:n_valid])
-        self.__test_set  = SupervisedData(X[n_valid:], y[n_valid:])
+        self.__test_set  = SupervisedData(X[n_train:], y[n_train:])
         date = date[self.__hist_len:]
-        n_train = int(n_train // self.__n_tranche)
-        n_valid = int(n_valid // self.__n_tranche)
         self.__train_date = date[:n_train]
-        self.__valid_date = date[n_train:n_valid]
-        self.__test_date  = date[n_valid:]
+        self.__test_date  = date[n_train:]
 
     def __check_split(self, split:List[float]):
-        if len(split) != 3:
-            raise ValueError('the length of split must be 3.')
+        if len(split) != 2:
+            raise ValueError('the length of split must be 2.')
         if sum(split) != 1:
             raise ValueError('the sum of split must be 1.')
 

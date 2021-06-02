@@ -9,21 +9,22 @@ import torch.nn as nn
 sys.path.append('./')
 from data.tickdata import CSVDataset
 from strategies.vwap.m2t.macro.datamgr import VolumeProfileDataset
-from strategies.vwap.m2t.model import LSTM, MLP, Linear
+from strategies.vwap.m2t.model import MacroBaseline, LSTM, MLP, Linear
 
 
 def parse_args():
     parser = argparse.ArgumentParser('train deep macro trader')
     parser.add_argument('--cuda', action='store_true', help='use cuda in training')
     parser.add_argument('--stock', type=str, help='stock code')
-    parser.add_argument('--model', type=str, help='macro model {Linear/MLP/LSTM}')
+    parser.add_argument('--model', type=str, help='macro model {Baseline/Linear/MLP/LSTM}')
     parser.add_argument('--epoch', default=200, type=int, help='epoch for training')
     parser.add_argument('--checkpoint', default=0, type=int, help='save model per checkpoint')
     parser.add_argument('--start_epoch', default=0, type=int, help='start epoch')
     return parser.parse_args()
 
 
-def train(model, model_dir, train_data, val_data,
+# training dnn
+def train(model, model_dir, train_data, test_data,
           epoch, criterion, optimizer,
           start_epoch=0, checkpoint=0,
           device='cpu'):
@@ -46,7 +47,7 @@ def train(model, model_dir, train_data, val_data,
     if start_epoch != 0:
         load_weight(epoch=start_epoch)
     
-    best_val_loss = 1e8
+    best_test_loss = 1e8
     for e in range(start_epoch + 1, start_epoch + epoch + 1):
         model.train()
         X, y = train_data.X.to(device), train_data.y.to(device)
@@ -56,19 +57,19 @@ def train(model, model_dir, train_data, val_data,
         loss.backward()
         optimizer.step()
         model.eval()
-        X, y = val_data.X.to(device), val_data.y.to(device)
-        val_pred = model(X)
-        val_loss = criterion(y, val_pred)
+        X, y = test_data.X.to(device), test_data.y.to(device)
+        pred = model(X)
+        test_loss = criterion(y, pred)
         print('Epoch: %d/%d, ' % (e, start_epoch + epoch), end='')
-        print('train MSE = %.5f, validation MSE = %.5f.' % (loss, val_loss))
+        print('train MSE = %.5f, test MSE = %.5f.' % (loss, test_loss))
         if checkpoint > 0 and e % checkpoint == 0:
             save_weight(epoch=e)
-        if val_loss < best_val_loss:
-            best_val_loss = val_loss
+        if test_loss < best_test_loss:
+            best_test_loss = test_loss
             save_weight(epoch=-1)
-            print('Get best model with MSE loss %.5f! saved.' % best_val_loss)
+            print('Get best model with MSE loss %.5f! saved.' % best_test_loss)
         else:
-            print('GG, best MSE loss is %.5f.' % best_val_loss)
+            print('GG, best MSE loss is %.5f.' % best_test_loss)
 
 
 def main(args, config):
@@ -78,6 +79,7 @@ def main(args, config):
     else:
         device = torch.device('cpu')
     
+    # set dataset
     dataset = CSVDataset(config['data']['path'], args.stock)
     data = VolumeProfileDataset(
         dataset = dataset,
@@ -87,8 +89,11 @@ def main(args, config):
         history_length=config['m2t']['macro']['n_history']
         )
 
+    # set model
     model_config = config['m2t']['macro']['model']
-    if args.model == 'Linear':
+    if args.model == 'Baseline':
+        model = MacroBaseline()
+    elif args.model == 'Linear':
         model = Linear(
             input_size=data.X_len, 
             output_size=1,
@@ -113,22 +118,33 @@ def main(args, config):
     else:
         raise ValueError('unknown model.')
 
+    # set training
     model_dir = os.path.join(config['model_dir'], 'm2t', 'macro', args.stock, args.model)
-    optimizer = torch.optim.Adam(model.parameters(), lr=model_config['lr'])
-    criterion = nn.MSELoss()
-    train(
-        model=model,
-        model_dir=model_dir,
-        train_data=data.train_set,
-        val_data=data.valid_set,
-        epoch=args.epoch,
-        optimizer=optimizer,
-        criterion=criterion,
-        start_epoch=args.start_epoch,
-        checkpoint=args.checkpoint,
-        device=device
-        )
+    
+    if args.model == 'Baseline':
+        X, y = data.test_set.X.to(device), data.test_set.y.to(device)
+        pred  = model(X)
+        criterion = nn.MSELoss()
+        loss  = criterion(y, pred)
+        print('Baseline test MSE loss %.5f!' % loss)
+    else:
+        optimizer = torch.optim.Adam(model.parameters(), lr=model_config['lr'])
+        criterion = nn.MSELoss()
+        train(
+            model=model,
+            model_dir=model_dir,
+            train_data=data.train_set,
+            test_data=data.test_set,
+            epoch=args.epoch,
+            optimizer=optimizer,
+            criterion=criterion,
+            start_epoch=args.start_epoch,
+            checkpoint=args.checkpoint,
+            device=device
+            )
 
+
+# python -u ./scripts/m2t/macro/train.py --stock 600000 --epoch 1 --model Baseline --checkpoint 0
 
 if __name__ == '__main__':
     args  = parse_args()
