@@ -5,8 +5,6 @@ import sys
 import random
 
 import numpy as np
-import torch
-import torch.nn as nn
 
 sys.path.append('./')
 from data.tickdata import CSVDataset
@@ -19,16 +17,10 @@ def parse_args():
     parser.add_argument('--stock', type=str, help='stock code')
     parser.add_argument('--i', type=int, help='i tranche')
     return parser.parse_args()
-
         
 
 def main(args, config):
     window = config['data']['windows']
-
-    if args.cuda and torch.cuda.is_available():
-        device = torch.device('cuda')
-    else:
-        device = torch.device('cpu')
 
     dataset = CSVDataset(config['data']['path'], args.stock)
     tranche = TrancheDataset(
@@ -44,10 +36,7 @@ def main(args, config):
     np.save(f'./scripts/dnn/dataset/{args.stock}-{args.i}.train.y', data['train']['y'])
     np.save(f'./scripts/dnn/dataset/{args.stock}-{args.i}.test.X', data['test']['X'])
     np.save(f'./scripts/dnn/dataset/{args.stock}-{args.i}.test.y', data['test']['y'])
-    model = None
     
-
-
 
 if __name__ == '__main__':
     args  = parse_args()
