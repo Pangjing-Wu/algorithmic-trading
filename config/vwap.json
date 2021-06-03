@@ -19,7 +19,7 @@
             "split": [0.8, 0.2],
             "model": {
                 "loss": "MSELoss",
-                "optimier": "SGD",
+                "optimier": "Adam",
                 "lr": 1e-4,
                 "Linear": {},
                 "MLP": {"hidden_size": [32, 64, 32]},
