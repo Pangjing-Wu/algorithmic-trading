@@ -11,7 +11,7 @@ import torch.nn as nn
 sys.path.append('./')
 from data.tickdata import CSVDataset
 from exchange.stock import AShareExchange
-from strategies.vwap.m2t.datamgr import VolumeProfileDataset, TrancheDataset 
+from strategies.vwap.m2t.micro.datamgr import VolumeProfileDataset, TrancheDataset 
 from strategies.vwap.m2t.micro.env import (BaselineTranche, HistoricalTranche,
                                            RecurrentTranche)
 from strategies.vwap.m2t.micro.trader import MicroTrader

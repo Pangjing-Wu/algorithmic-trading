@@ -200,7 +200,7 @@ class BaselineTranche(BasicTranche):
         return np.array(state, dtype=np.float32)
 
 
-# 2.0.0/2.5.0 version env
+# 2.0.0 version env
 class HistoricalTranche(BasicTranche):
     
     def __init__(self, tickdata, task:pd.Series,
@@ -219,6 +219,11 @@ class HistoricalTranche(BasicTranche):
         return n
 
     def _state(self)->np.array:
+        '''
+        state shape = ([in_state, ex_state])
+        in_state shape = ([time_ratio, filled_ratio])
+        ex_state shape = ([price, volume] * seq * level)
+        '''
         t = self._t
         history = np.array([])
         for _ in range(self._quote_length):
@@ -256,19 +261,27 @@ class RecurrentTranche(BasicTranche):
         return n
 
     def _state(self)->tuple:
+        '''
+        state shape = (in_state, ex_state)
+        in_state shape = ([time_ratio, filled_ratio])
+        ex_state shape = ([price, volume], seq, level)
+        '''
         t = self._t
-        history = np.array([])
+        price = list()
+        size  = list()
         for _ in range(self._quote_length):
             quote = self._data.quote.get(t)
-            history = np.r_[history, np.log2([max(0.01, s) for s in quote.price.values])]
-            history = np.r_[history, np.log10([max(0.01, s) for s in quote.size.values])]
+            price += np.log10([x + 1. for x in quote.price.values]).tolist()
+            size  += np.log10([x + 1 for x in quote.size.values]).tolist()
             try:
                 t = self._data.quote.pre_time_of(t)
             except IndexError:
                 break
-        padnum  = 2 * len(self._data.quote.level) * self._quote_length - len(history)
-        history = np.pad(history, (padnum, 0))
-        history = history.reshape(self._quote_length, 2 * len(self._data.quote.level))
+        padnum  = len(self._data.quote.level) * self._quote_length - len(price)
+        price = np.pad(price, (padnum, 0))
+        size  = np.pad(size, (padnum, 0))
+        price = price.reshape(self._quote_length, len(self._data.quote.level))
+        size  = size.reshape(self._quote_length, len(self._data.quote.level))
         time_ratio  = (self._t - self._task['start']) / (self._task['end'] - self._task['start'])
         filled_ratio = sum(self._total_filled['size']) / self._task['goal']
-        return (np.array([time_ratio, filled_ratio], dtype=np.float32), np.array(history, dtype=np.float32))
+        return [[time_ratio, filled_ratio], [price, size]]

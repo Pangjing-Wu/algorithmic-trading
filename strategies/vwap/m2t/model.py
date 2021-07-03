@@ -117,53 +117,31 @@ class HybridLSTM(nn.Module):
     def __init__(self, input_size:tuple, output_size:int, hidden_size=20,
                  num_layers=1, dropout=0, device='cpu'):
         super().__init__()
-        self.l1   = nn.Linear(input_size[0]+hidden_size, output_size, bias=True)
-        self.lstm = nn.LSTM(input_size[1], hidden_size, num_layers,
-                            dropout=dropout, batch_first=True)
+        self.l1   = nn.Linear(input_size[0]+ 2 * hidden_size, output_size, bias=True)
+        self.lstm11 = nn.LSTM(input_size[1] // 2, hidden_size, num_layers,
+                              dropout=dropout, batch_first=True)
+        self.lstm12 = nn.LSTM(input_size[1] // 2, hidden_size, num_layers,
+                              dropout=dropout, batch_first=True)
         self.__device = device
         
     def forward(self, x):
+        '''
+        x shape = (in_state, ex_state) or (N, (in_state, ex_state))
+        ex_state shape = ([price, volume], seq, level)
+        '''
         x = np.array(x, dtype=object)
-        if x.ndim == 1:
-            x0 = torch.tensor(x[0], device=self.__device).unsqueeze(0)
-            x1 = torch.tensor(x[1], device=self.__device).unsqueeze(0)
-        elif x.ndim == 2:
-            x0 = torch.tensor(np.vstack(x[:,0]), device=self.__device, dtype=torch.float32)
-            x1 = torch.tensor(np.array([*x[:,1]]), device=self.__device, dtype=torch.float32)
+        if x.ndim == 2:
+            x0  = torch.tensor(np.array(x[0], dtype=np.float32), device=self.__device).unsqueeze(0)
+            x11 = torch.tensor(np.array(x[1, 0], dtype=np.float32), device=self.__device).unsqueeze(0)
+            x12 = torch.tensor(np.array(x[1, 1], dtype=np.float32), device=self.__device).unsqueeze(0)
+        elif x.ndim == 3:
+            x0  = torch.tensor(np.array(x[:,0], dtype=np.float32), device=self.__device, dtype=torch.float32)
+            x11 = torch.tensor(np.array([*x[:,1, 0]], dtype=np.float32), device=self.__device, dtype=torch.float32)
+            x12 = torch.tensor(np.array([*x[:,1, 1]], dtype=np.float32), device=self.__device, dtype=torch.float32)
         else:
             raise KeyError('unexcepted dimension of x.')
-        x1, _ = self.lstm(x1)
-        x = torch.cat([x0, x1[:,-1,:]], dim=1)
-        x = self.l1(x)
-        return x
-
-
-class HybridAttenBiLSTM(nn.Module):
-    def __init__(self, input_size, output_size, hidden_size,
-                 num_layers, dropout, attention_size, device='cpu'):
-        super().__init__()
-
-        self.__device = device
-        self.__att_w  = torch.zeros(hidden_size * num_layers * 2, attention_size).to(self.__device)
-        self.__att_u = torch.zeros(attention_size).to(self.__device)
-        self.l1 = nn.Linear(hidden_size * num_layers * 2, output_size)
-        self.lstm = nn.LSTM(input_size, hidden_size, num_layers,
-                            dropout=dropout, bidirectional=True,
-                            batch_first=True)
-
-    def __attention_net(self, x):
-        ''' M = tanh(wH); a = softmax(uM); r = Ha
-        '''
-        sequen_size = x.shape[1]
-        hidden_size = x.shape[2]
-        attention = torch.tanh(torch.mm(x.reshape(-1, hidden_size), self.__att_w))
-        attention = torch.mm(attention, self.__att_u.reshape(-1, 1))
-        alphas = F.softmax(attention, dim=0).reshape(-1, sequen_size, 1)
-        x = torch.sum(x * alphas, 1)
-        return x
-
-    def forward(self, x, batch_size=None):
-        x, _ = self.lstm(x)
-        x = self.__attention_net(x)
+        x11, _ = self.lstm11(x11)
+        x12, _ = self.lstm11(x12)
+        x = torch.cat([x0, x11[:,-1,:], x12[:,-1,:]], dim=1)
         x = self.l1(x)
         return x

@@ -1,6 +1,6 @@
 {
     "data": {
-        "path": "/data/al2",
+        "path": "./dataset",
         "times": [34200000, 41400000, 46800000, 53700000]
     },
 
@@ -37,7 +37,7 @@
             "model": {
                 "loss": "MSELoss",
                 "optimier": "SGD",
-                "lr": 5e-5,
+                "lr": 1e-5,
                 "Linear": {},
                 "HybridLSTM": {
                     "hidden_size": 128,

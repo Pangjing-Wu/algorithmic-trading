@@ -1,11 +1,12 @@
+  
 tranches=8
 models=('Linear' 'HybridLSTM')
 agent='QLearning'
-rewards=('sparse' 'dense')
+rewards=('sparse' '-dense')
 eps=1.0
 streps='10'
 episode=10000
-quote_length=5
+quote_length=20
 stocklist="./config/stocklist/sample-8.txt"
 
 cat $stocklist| while read stock name; do
@@ -16,7 +17,7 @@ cat $stocklist| while read stock name; do
             for reward in ${rewards[@]}; do
                 cmd="CUDA_VISIBLE_DEVICES=$device python -u ./scripts/m2t/micro/train.py 
                     --stock $stock --episode $episode --agent $agent --eps $eps --i_tranche $i
-                    --model $model --reward $reward --quote_length $quote_length --cuda
+                    --model $model --reward $reward --quote_length $quote_length --checkpoint 500
                     2>&1 >./results/logs/vwap/m2t/micro/$stock-$model-eps$streps-$reward-len$quote_length-$i-$tranches.log"
                 eval $cmd&
                 sleep 2

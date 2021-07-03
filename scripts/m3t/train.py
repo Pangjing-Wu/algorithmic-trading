@@ -72,7 +72,7 @@ def main(args, config):
         drop_length=config['m3t']['n_history']
         )
 
-    if args.model in ['HybridLSTM', 'HybridAttenBiLSTM']:
+    if args.model == 'HybridLSTM':
         env = RecurrentTranche
     else:
         raise ValueError('unknown model')
@@ -98,24 +98,13 @@ def main(args, config):
             dropout=model_config[args.model]['dropout'],
             device=device
             )
-    elif args.model == 'HybridAttenBiLSTM':
-        micro_model = HybridAttenBiLSTM(
-            input_size=envs[0].intrinsic_observation_space_n, 
-            output_size=envs[0].intrinsic_action_space_n,
-            hidden_size=model_config[args.model]['hidden_size'],
-            num_goals=envs[0].extrinsic_action_space_n,
-            num_layers=model_config[args.model]['num_layers'],
-            dropout=model_config[args.model]['dropout'],
-            attention_size=model_config[args.model]['attention_size'],
-            device=device
-        )
     else:
         raise ValueError('unknown model.')
 
     micro_criterion = nn.MSELoss()
     macro_criterion = nn.MSELoss()
-    macro_optimizer = torch.optim.Adam(macro_model.parameters(), lr=model_config['lr'])
-    micro_optimizer = torch.optim.Adam(micro_model.parameters(), lr=model_config['lr'])
+    macro_optimizer = torch.optim.SGD(macro_model.parameters(), lr=model_config['lr'])
+    micro_optimizer = torch.optim.SGD(micro_model.parameters(), lr=model_config['lr'])
 
     if args.agent == 'HierarchicalQ':
         agent = HierarchicalQ(
